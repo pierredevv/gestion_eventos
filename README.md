@@ -89,6 +89,8 @@ Ver `docs/adr/`:
 - `0007` sesiones opacas y CSRF
 - `0008` dinero (`NUMERIC(12,2)`, BOB) y zona horaria
 - `0009` rechazo de comprobantes y reintentos
+- `0010` estrategia de pruebas
+- `0011` cola durable de notificaciones y emisión idempotente de tickets
 
 ## Aclaración sobre los QR
 
@@ -100,17 +102,12 @@ Ver `docs/adr/`:
 ## Estado
 
 - [x] F1 — Fundaciones del monorepo
-- [x] F2 — Esquema de datos y restricciones SQL
-
-> **Pendiente de credenciales:** la migración inicial está generada pero aún no se aplicó a
-> Supabase porque falta `DATABASE_URL`/`DIRECT_URL` reales en `.env`. Ejecuta
-> `pnpm --filter @eventos/api prisma:migrate` después de completarlas.
-
-- [ ] F3 — Autenticación y roles
-- [ ] F4 — Eventos y tipos de entrada
-- [ ] F5 — Órdenes e inventario
-- [ ] F6 — Pagos y revisión
-- [ ] F7 — Tickets y notificaciones
+- [x] F2 — Esquema de datos y restricciones SQL (aplicado a `public` y `test`)
+- [x] F3 — Autenticación y roles
+- [x] F4 — Eventos y tipos de entrada
+- [x] F5 — Órdenes e inventario
+- [x] F6 — Pagos y revisión manual
+- [x] F7 — Tickets y notificaciones
 - [ ] F8 — Escáner y check-in
 - [ ] F9 — Reportes
 - [ ] F10 — Frontend público y administrativo

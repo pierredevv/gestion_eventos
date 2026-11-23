@@ -15,7 +15,9 @@ import { SessionAuthGuard } from './modules/auth/guards/session-auth.guard';
 import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './modules/health/health.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { TicketsModule } from './modules/tickets/tickets.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -40,6 +42,8 @@ import { UsersModule } from './modules/users/users.module';
     EventsModule,
     OrdersModule,
     PaymentsModule,
+    TicketsModule,
+    NotificationsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
