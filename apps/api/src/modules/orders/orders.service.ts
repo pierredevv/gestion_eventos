@@ -18,6 +18,7 @@ import { EmailService } from '../../common/email/email.service';
 import type { RequestContext } from '../../common/http/request-context';
 import { releaseStock, reserveStock } from '../../common/inventory/inventory-sql';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { INTERACTIVE_TRANSACTION_OPTIONS } from '../../common/prisma/transaction-options';
 import { generateOpaqueToken, hashToken } from '../../common/security/tokens';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import type { CreatedOrderResult, OrderView } from './orders.types';
@@ -207,7 +208,7 @@ export class OrdersService {
         });
 
         return order;
-      });
+      }, INTERACTIVE_TRANSACTION_OPTIONS);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException({
@@ -342,7 +343,7 @@ export class OrdersService {
         data: { status: OrderStatus.CANCELLED, cancelledAt: new Date() },
         include: ORDER_INCLUDE,
       });
-    });
+    }, INTERACTIVE_TRANSACTION_OPTIONS);
 
     await this.audit.record({
       action: 'ORDER_CANCELLED',

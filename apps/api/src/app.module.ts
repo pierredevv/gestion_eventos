@@ -15,6 +15,7 @@ import { SessionAuthGuard } from './modules/auth/guards/session-auth.guard';
 import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './modules/health/health.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -38,6 +39,7 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     EventsModule,
     OrdersModule,
+    PaymentsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

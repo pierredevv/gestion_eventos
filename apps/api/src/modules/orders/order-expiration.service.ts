@@ -4,6 +4,7 @@ import { OrderStatus, ReservationStatus } from '@prisma/client';
 import { AuditService } from '../../common/audit/audit.service';
 import { releaseStock } from '../../common/inventory/inventory-sql';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { INTERACTIVE_TRANSACTION_OPTIONS } from '../../common/prisma/transaction-options';
 
 const BATCH_SIZE = 100;
 
@@ -102,7 +103,7 @@ export class OrderExpirationService {
         where: { id: orderId },
         data: { status: OrderStatus.EXPIRED, expiredAt: new Date() },
       });
-    });
+    }, INTERACTIVE_TRANSACTION_OPTIONS);
 
     await this.audit.record({
       action: 'ORDER_EXPIRED',
