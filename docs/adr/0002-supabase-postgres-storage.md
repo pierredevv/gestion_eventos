@@ -19,14 +19,19 @@ probar concurrencia (sobreventa, doble check-in) y un almacenamiento privado par
   esquema `public` (tablas, secuencias y funciones) y sobre los objetos que creen las migraciones
   futuras (`ALTER DEFAULT PRIVILEGES`). Sin esto, la clave publicable que viaja al navegador
   permitiría leer y escribir todas las tablas por la Data API de Supabase, saltándose NestJS.
+- Supabase habilita RLS automáticamente en cada tabla nueva de `public` mediante el event trigger
+  `ensure_rls`. No se crea ninguna política, por lo que el resultado es denegación total para los
+  roles de la Data API.
 
 ## Consecuencias
 
-- Toda lectura y escritura pasa por NestJS; la Data API de Supabase queda inutilizable para el
-  esquema `public`, que es exactamente lo buscado.
-- RLS **no** se habilita: la autorización vive en NestJS y un RLS de denegación total rompería la
-  API si en el futuro se migra a un rol de aplicación dedicado (no propietario). La defensa contra
-  PostgREST se implementa revocando privilegios, que es explícito y no depende del rol de conexión.
+- Toda lectura y escritura pasa por NestJS. La Data API de Supabase queda inutilizable sobre
+  `public`, que es exactamente lo buscado: doble defensa (RLS sin políticas + privilegios
+  revocados).
+- Prisma se conecta con el rol `postgres`, que tiene `BYPASSRLS`; por eso RLS no afecta a la API.
+  **Requisito de despliegue:** el rol de conexión debe tener `BYPASSRLS` (o ser propietario de las
+  tablas). Si se migra a un rol de aplicación dedicado sin `BYPASSRLS`, hay que añadir políticas
+  explícitas; de lo contrario todas las consultas fallarán en silencio.
 - Los buckets siguen siendo privados y solo se acceden con URLs firmadas del backend.
 - La app usa la cadena del *pooler* (6543) y las migraciones la conexión directa (5432).
 - El plan gratuito no ofrece backups automáticos ni PITR. Producción requiere plan Pro o

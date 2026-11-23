@@ -1,51 +1,20 @@
 import 'reflect-metadata';
 
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
+import { configureApp } from './app-config';
 import { AppModule } from './app.module';
 import type { AppEnv } from './common/config/env';
-import { requestIdMiddleware } from './common/middleware/request-id.middleware';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService<AppEnv, true>);
 
-  const port = config.get('PORT', { infer: true });
-  const webOrigin = config.get('WEB_ORIGIN', { infer: true });
-
-  app.set('trust proxy', 1);
-  app.use(helmet());
-  app.use(cookieParser());
-  app.use(requestIdMiddleware);
-  app.enableCors({
-    origin: [webOrigin],
-    credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-CSRF-Token',
-      'Idempotency-Key',
-      'X-Request-Id',
-    ],
-    exposedHeaders: ['x-request-id'],
-  });
-
-  app.setGlobalPrefix('api/v1');
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
-  app.enableShutdownHooks();
+  configureApp(app);
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Gestion de Eventos API')
@@ -58,6 +27,7 @@ async function bootstrap(): Promise<void> {
     jsonDocumentUrl: 'api/docs-json',
   });
 
+  const port = config.get('PORT', { infer: true });
   await app.listen(port);
   logger.log(`API listening on http://localhost:${port}/api/v1`);
   logger.log(`OpenAPI documentation on http://localhost:${port}/api/docs`);

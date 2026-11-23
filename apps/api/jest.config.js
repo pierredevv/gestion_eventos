@@ -2,6 +2,7 @@
 module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: '.',
+  setupFiles: ['<rootDir>/test/setup-env.ts'],
   testRegex: '.*\\.spec\\.ts$',
   transform: {
     '^.+\\.ts$': [
@@ -16,5 +17,8 @@ module.exports = {
   collectCoverageFrom: ['src/**/*.ts', '!src/main.ts'],
   coverageDirectory: 'coverage',
   testEnvironment: 'node',
+  // Integration suites share the dedicated test schema, so they must not run in parallel.
+  maxWorkers: 1,
+  testTimeout: 90000,
   clearMocks: true,
 };

@@ -5,6 +5,8 @@
 export interface ApiErrorShape {
   statusCode: number;
   error: string;
+  /** Stable, machine-readable code for the client (e.g. CSRF_INVALID). */
+  code?: string;
   message: string | string[];
   path: string;
   timestamp: string;

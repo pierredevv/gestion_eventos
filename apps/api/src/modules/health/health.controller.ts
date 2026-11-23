@@ -4,6 +4,7 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import type { AppEnv } from '../../common/config/env';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { Public } from '../auth/decorators/auth.decorators';
 
 interface ReadinessResponse {
   status: 'ok' | 'degraded';
@@ -15,6 +16,7 @@ interface ReadinessResponse {
 
 @ApiTags('health')
 @Controller('health')
+@Public()
 export class HealthController {
   constructor(
     private readonly prisma: PrismaService,

@@ -13,6 +13,7 @@ import { getRequestId } from '../http/request-with-id';
 interface HttpExceptionPayload {
   message?: string | string[];
   error?: string;
+  code?: string;
 }
 
 @Catch()
@@ -31,6 +32,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     let message: string | string[] = 'Internal server error';
     let error = 'Internal Server Error';
+    let code: string | undefined;
 
     if (isHttpException) {
       const payload = exception.getResponse();
@@ -45,6 +47,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
         if (typed.error) {
           error = typed.error;
         }
+        if (typed.code) {
+          code = typed.code;
+        }
       }
     } else {
       const stack = exception instanceof Error ? (exception.stack ?? exception.message) : String(exception);
@@ -54,6 +59,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const body: ApiErrorShape = {
       statusCode,
       error,
+      code,
       message,
       path: request.originalUrl,
       timestamp: new Date().toISOString(),

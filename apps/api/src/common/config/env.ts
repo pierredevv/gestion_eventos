@@ -16,6 +16,23 @@ const optionalString = z.preprocess(emptyToUndefined, z.string().min(1).optional
 const optionalUrl = z.preprocess(emptyToUndefined, z.url().optional());
 const optionalEncryptionKey = z.preprocess(emptyToUndefined, base64Key.optional());
 
+/** `z.coerce.boolean()` treats the string "false" as true, so parse explicitly. */
+const booleanFromString = z.preprocess((value) => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', '1', 'yes'].includes(normalized)) {
+      return true;
+    }
+    if (['false', '0', 'no', ''].includes(normalized)) {
+      return false;
+    }
+  }
+  return value;
+}, z.boolean());
+
 export const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -51,10 +68,44 @@ export const envSchema = z
     EMAIL_PROVIDER: z.enum(['console', 'resend', 'smtp']).default('console'),
     EMAIL_FROM: z.string().min(3).default('no-reply@eventos.local'),
     RESEND_API_KEY: optionalString,
+    SMTP_HOST: optionalString,
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
+    SMTP_USER: optionalString,
+    SMTP_PASSWORD: optionalString,
+    SMTP_SECURE: booleanFromString.default(true),
   })
   .superRefine((value, ctx) => {
+    if (value.EMAIL_PROVIDER === 'resend' && !value.RESEND_API_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['RESEND_API_KEY'],
+        message: 'RESEND_API_KEY is required when EMAIL_PROVIDER=resend',
+      });
+    }
+
+    if (value.EMAIL_PROVIDER === 'smtp') {
+      const requiredSmtpKeys = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD'] as const;
+      for (const key of requiredSmtpKeys) {
+        if (!value[key]) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required when EMAIL_PROVIDER=smtp`,
+          });
+        }
+      }
+    }
+
     if (value.NODE_ENV !== 'production') {
       return;
+    }
+
+    if (value.EMAIL_PROVIDER === 'console') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['EMAIL_PROVIDER'],
+        message: 'a real email provider is required in production',
+      });
     }
 
     const requiredKeys = [
