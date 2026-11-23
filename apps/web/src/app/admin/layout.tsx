@@ -9,10 +9,18 @@ import { apiFetch, apiSend, ApiRequestError } from '@/lib/api';
 import type { AuthUserView } from '@/lib/types';
 
 const NAV = [
-  { href: '/admin', label: 'Resumen', roles: ['SUPER_ADMIN', 'EVENT_MANAGER', 'PAYMENT_REVIEWER', 'CHECK_IN_STAFF'] },
+  {
+    href: '/admin',
+    label: 'Resumen',
+    roles: ['SUPER_ADMIN', 'EVENT_MANAGER', 'PAYMENT_REVIEWER', 'CHECK_IN_STAFF'],
+  },
   { href: '/admin/events', label: 'Eventos', roles: ['SUPER_ADMIN', 'EVENT_MANAGER'] },
   { href: '/admin/payments', label: 'Pagos', roles: ['SUPER_ADMIN', 'PAYMENT_REVIEWER'] },
-  { href: '/admin/check-in', label: 'Check-in', roles: ['SUPER_ADMIN', 'EVENT_MANAGER', 'CHECK_IN_STAFF'] },
+  {
+    href: '/admin/check-in',
+    label: 'Check-in',
+    roles: ['SUPER_ADMIN', 'EVENT_MANAGER', 'CHECK_IN_STAFF'],
+  },
   { href: '/admin/users', label: 'Usuarios', roles: ['SUPER_ADMIN'] },
 ] as const;
 
@@ -29,7 +37,9 @@ function PasswordChange({ onDone }: { onDone: () => void }): ReactNode {
       await apiSend('/auth/change-password', 'POST', { currentPassword, newPassword });
       onDone();
     } catch (cause) {
-      setError(cause instanceof ApiRequestError ? cause.message : 'No se pudo cambiar la contraseña');
+      setError(
+        cause instanceof ApiRequestError ? cause.message : 'No se pudo cambiar la contraseña',
+      );
       setBusy(false);
     }
   }
@@ -74,9 +84,9 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
 
   useEffect(() => {
     let active = true;
-    apiFetch<AuthUserView>('/auth/me')
+    apiFetch<{ user: AuthUserView }>('/auth/me')
       .then((result) => {
-        if (active) setUser(result);
+        if (active) setUser(result.user);
       })
       .catch(() => {
         if (active) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
@@ -121,24 +131,29 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
         <aside className="w-48 shrink-0">
           <p className="text-ink-muted text-xs font-semibold uppercase">Panel</p>
           <nav className="mt-4 flex flex-col gap-1">
-            {NAV.filter((item) => item.roles.some((role) => user.roles.includes(role))).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`rounded-lg px-3 py-2 text-sm transition-colors ${
-                  pathname === item.href
-                    ? 'bg-ink text-paper font-semibold'
-                    : 'text-ink-muted hover:bg-surface hover:text-ink'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {NAV.filter((item) => item.roles.some((role) => user.roles.includes(role))).map(
+              (item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`rounded-lg px-3 py-2 text-sm transition-colors ${
+                    pathname === item.href
+                      ? 'bg-ink text-paper font-semibold'
+                      : 'text-ink-muted hover:bg-surface hover:text-ink'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ),
+            )}
           </nav>
           <div className="border-line mt-6 border-t pt-4">
             <p className="text-sm font-medium">{user.fullName}</p>
             <p className="text-ink-muted text-xs break-all">{user.email}</p>
-            <button className="text-accent mt-3 text-xs font-semibold" onClick={() => void logout()}>
+            <button
+              className="text-accent mt-3 text-xs font-semibold"
+              onClick={() => void logout()}
+            >
               Cerrar sesión
             </button>
           </div>

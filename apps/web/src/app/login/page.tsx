@@ -24,9 +24,7 @@ function LoginForm(): ReactNode {
       router.push(next.startsWith('/') ? next : '/admin');
       router.refresh();
     } catch (cause) {
-      setError(
-        cause instanceof ApiRequestError ? cause.message : 'No se pudo iniciar sesión',
-      );
+      setError(cause instanceof ApiRequestError ? cause.message : 'No se pudo iniciar sesión');
       setBusy(false);
     }
   }
@@ -65,7 +63,10 @@ function LoginForm(): ReactNode {
             {busy ? 'Ingresando…' : 'Ingresar'}
           </button>
           <p className="text-ink-muted text-center text-xs">
-            ¿No tienes cuenta? <Link className="text-accent font-semibold" href="/register">Regístrate</Link>
+            ¿No tienes cuenta?{' '}
+            <Link className="text-accent font-semibold" href="/register">
+              Regístrate
+            </Link>
           </p>
         </div>
       </div>

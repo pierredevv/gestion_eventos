@@ -20,7 +20,8 @@ export default function EventsPage(): ReactNode {
         if (active) setEvents(result.items);
       })
       .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : 'No se pudo cargar el catálogo');
+        if (active)
+          setError(cause instanceof Error ? cause.message : 'No se pudo cargar el catálogo');
       })
       .finally(() => {
         if (active) setLoading(false);

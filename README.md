@@ -19,7 +19,10 @@ packages/
   contracts/  Tipos compartidos generados desde OpenAPI
 docs/
   adr/        Decisiones de arquitectura
+  deployment.md  Guía de despliegue en Vercel + Railway
 ```
+
+`Dockerfile.api`, `railway.json` y `vercel.json` contienen la configuración de producción.
 
 ## Requisitos
 
@@ -65,15 +68,15 @@ Reglas importantes con Supabase:
 
 ## Scripts
 
-| Comando | Descripción |
-|---|---|
-| `pnpm build` | Compila API y web |
-| `pnpm typecheck` | TypeScript estricto en todos los paquetes |
-| `pnpm lint` | ESLint (flat config) |
-| `pnpm test` | Pruebas de todos los paquetes |
-| `pnpm dev:api` / `pnpm dev:web` | Desarrollo |
-| `pnpm --filter @eventos/api prisma:migrate` | Aplica migraciones pendientes |
-| `pnpm --filter @eventos/api db:check` | Verifica la conexión a la base de datos |
+| Comando                                       | Descripción                                                 |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| `pnpm build`                                  | Compila API y web                                           |
+| `pnpm typecheck`                              | TypeScript estricto en todos los paquetes                   |
+| `pnpm lint`                                   | ESLint (flat config)                                        |
+| `pnpm test`                                   | Pruebas de todos los paquetes                               |
+| `pnpm dev:api` / `pnpm dev:web`               | Desarrollo                                                  |
+| `pnpm --filter @eventos/api prisma:migrate`   | Aplica migraciones pendientes                               |
+| `pnpm --filter @eventos/api db:check`         | Verifica la conexión a la base de datos                     |
 | `pnpm --filter @eventos/api openapi:generate` | Regenera `openapi.json` y los tipos de `packages/contracts` |
 
 ## Decisiones clave
@@ -92,6 +95,7 @@ Ver `docs/adr/`:
 - `0010` estrategia de pruebas
 - `0011` cola durable de notificaciones y emisión idempotente de tickets
 - `0012` check-in: ventana temporal, auditoría y uso único
+- `0013` despliegue separado y cookies entre sitios
 
 ## Aclaración sobre los QR
 
@@ -99,6 +103,19 @@ Ver `docs/adr/`:
   solo la almacena y la muestra con el monto exacto y las instrucciones.
 - **QR de ticket:** lo genera el sistema, uno por asistente, con un token aleatorio. Nunca contiene
   datos personales.
+
+## Despliegue
+
+Web en Vercel y API en Railway, sin dominio propio. La guía completa está en
+[`docs/deployment.md`](docs/deployment.md). Puntos críticos:
+
+- `DATABASE_URL` usa el pooler de transacciones; `DIRECT_URL` (conexión directa) solo para migraciones.
+- Web y API están en sitios distintos: en producción `COOKIE_SAME_SITE=none` y `WEB_ORIGIN` debe ser
+  la URL exacta de Vercel. `Origin`, CORS y el token CSRF se validan en cada mutación. La API expone
+  el token CSRF en la cabecera `X-CSRF-Token` porque la cookie pertenece a otro dominio.
+- `NEXT_PUBLIC_PAYMENT_QR_URL` apunta a la imagen estática del QR bancario de la organización; el
+  sistema nunca genera ese QR.
+- El contenedor de la API aplica migraciones y ejecuta un solo worker de notificaciones: usa una réplica.
 
 ## Estado
 
@@ -112,4 +129,4 @@ Ver `docs/adr/`:
 - [x] F8 — Escáner y check-in
 - [x] F9 — Reportes
 - [x] F10 — Frontend público y administrativo
-- [ ] F11 — Hardening y despliegue
+- [x] F11 — Hardening y despliegue

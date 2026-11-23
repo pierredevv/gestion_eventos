@@ -64,7 +64,10 @@ export default function RegisterPage(): ReactNode {
             {busy ? 'Creando…' : 'Crear cuenta'}
           </button>
           <p className="text-ink-muted text-center text-xs">
-            ¿Ya tienes cuenta? <Link className="text-accent font-semibold" href="/login">Ingresa</Link>
+            ¿Ya tienes cuenta?{' '}
+            <Link className="text-accent font-semibold" href="/login">
+              Ingresa
+            </Link>
           </p>
         </div>
       </div>

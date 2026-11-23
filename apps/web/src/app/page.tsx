@@ -1,5 +1,6 @@
 const apiDocsUrl = process.env.NEXT_PUBLIC_API_DOCS_URL ?? 'http://localhost:4000/api/docs';
-const apiHealthUrl = process.env.NEXT_PUBLIC_API_HEALTH_URL ?? 'http://localhost:4000/api/v1/health/ready';
+const apiHealthUrl =
+  process.env.NEXT_PUBLIC_API_HEALTH_URL ?? 'http://localhost:4000/api/v1/health/ready';
 
 const capabilities = [
   {
@@ -52,8 +53,8 @@ const phases = [
   { name: 'F7 · Tickets y notificaciones', status: 'Completada' },
   { name: 'F8 · Escáner y check-in', status: 'Completada' },
   { name: 'F9 · Reportes y exportación', status: 'Completada' },
-  { name: 'F10 · Interfaces pública y administrativa', status: 'En curso' },
-  { name: 'F11 · Hardening y despliegue', status: 'Pendiente' },
+  { name: 'F10 · Interfaces pública y administrativa', status: 'Completada' },
+  { name: 'F11 · Hardening y despliegue', status: 'Completada' },
 ];
 
 export default function HomePage() {
@@ -148,9 +149,7 @@ export default function HomePage() {
               </dd>
             </div>
             <div>
-              <dt className="text-ink-muted text-xs font-medium tracking-wide uppercase">
-                Pagos
-              </dt>
+              <dt className="text-ink-muted text-xs font-medium tracking-wide uppercase">Pagos</dt>
               <dd className="mt-1 text-sm font-medium">
                 QR bancario estático y revisión manual auditada
               </dd>

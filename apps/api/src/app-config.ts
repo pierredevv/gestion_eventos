@@ -15,7 +15,10 @@ import { CookieService } from './common/security/cookie.service';
  */
 export function configureApp(app: NestExpressApplication): void {
   const config = app.get(ConfigService<AppEnv, true>);
-  const webOrigin = config.get('WEB_ORIGIN', { infer: true });
+  const allowedOrigins = [
+    config.get('WEB_ORIGIN', { infer: true }),
+    ...(config.get('ADDITIONAL_WEB_ORIGINS', { infer: true }) ?? []),
+  ];
 
   app.set('trust proxy', 1);
   app.use(helmet());
@@ -24,7 +27,7 @@ export function configureApp(app: NestExpressApplication): void {
   app.use(createCsrfCookieMiddleware(app.get(CookieService)));
   app.use(requestIdMiddleware);
   app.enableCors({
-    origin: [webOrigin],
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
@@ -34,7 +37,7 @@ export function configureApp(app: NestExpressApplication): void {
       'Idempotency-Key',
       'X-Request-Id',
     ],
-    exposedHeaders: ['x-request-id'],
+    exposedHeaders: ['x-request-id', 'X-CSRF-Token'],
   });
 
   app.setGlobalPrefix('api/v1');

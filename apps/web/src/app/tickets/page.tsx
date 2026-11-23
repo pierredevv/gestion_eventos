@@ -30,7 +30,11 @@ function QrImage({ payload }: { payload: string }): ReactNode {
     };
   }, [payload]);
   return src ? (
-    <img className="size-48 rounded-lg border border-line bg-white p-2" src={src} alt="QR de entrada" />
+    <img
+      className="size-48 rounded-lg border border-line bg-white p-2"
+      src={src}
+      alt="QR de entrada"
+    />
   ) : (
     <div className="size-48 animate-pulse rounded-lg bg-slate-100" />
   );
@@ -96,7 +100,11 @@ function TicketsContent(): ReactNode {
     if (!portal) return;
     setNotice('');
     try {
-      await apiSend(`/orders/${encodeURIComponent(portal.orderCode)}/tickets/resend`, 'POST', undefined);
+      await apiSend(
+        `/orders/${encodeURIComponent(portal.orderCode)}/tickets/resend?token=${encodeURIComponent(token ?? '')}`,
+        'POST',
+        undefined,
+      );
       setNotice('Enviamos el enlace nuevamente a tu correo.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo reenviar');

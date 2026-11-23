@@ -19,6 +19,7 @@
     "prisma:status": "dotenv -e ../../.env -- prisma migrate status",
     "prisma:studio": "dotenv -e ../../.env -- prisma studio",
     "db:seed": "dotenv -e ../../.env -- prisma db seed",
+    "seed:runtime": "tsx prisma/seed.ts",
     "db:check": "dotenv -e ../../.env -- node --import tsx scripts/check-db.ts",
     "openapi:export": "pnpm build && dotenv -e ../../.env -- node dist/openapi.js",
     "openapi:types": "openapi-typescript openapi.json -o ../../packages/contracts/src/generated/api.d.ts",

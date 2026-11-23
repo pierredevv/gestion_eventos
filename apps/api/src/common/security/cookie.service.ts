@@ -8,15 +8,19 @@ import { generateOpaqueToken } from './tokens';
 @Injectable()
 export class CookieService {
   private readonly secureCookies: boolean;
+  private readonly sameSite: 'lax' | 'none' | 'strict';
 
   constructor(config: ConfigService<AppEnv, true>) {
-    this.secureCookies = config.get('NODE_ENV', { infer: true }) === 'production';
+    this.sameSite = config.get('COOKIE_SAME_SITE', { infer: true });
+    // `SameSite=None` is only accepted by browsers together with `Secure`.
+    this.secureCookies =
+      config.get('NODE_ENV', { infer: true }) === 'production' || this.sameSite === 'none';
   }
 
   private baseOptions(): CookieOptions {
     return {
       path: '/',
-      sameSite: 'lax',
+      sameSite: this.sameSite,
       secure: this.secureCookies,
     };
   }

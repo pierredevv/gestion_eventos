@@ -1,12 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import {
-  NotificationStatus,
-  NotificationType,
-  Prisma,
-  type NotificationJob,
-} from '@prisma/client';
+import { NotificationStatus, NotificationType, Prisma, type NotificationJob } from '@prisma/client';
 import type { AppEnv } from '../../common/config/env';
 import { EmailService } from '../../common/email/email.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -73,6 +68,11 @@ export class NotificationWorkerService {
           await this.markFailed(job, error);
         }
       }
+    } catch (error) {
+      // A failed claim must not produce an unhandled scheduler rejection:
+      // jobs stay PENDING and are retried on the next tick.
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Notification worker batch failed: ${message}`);
     } finally {
       this.running = false;
     }
@@ -211,10 +211,7 @@ export class NotificationWorkerService {
    * teardown, another worker). Losing the final update is harmless: the work
    * was already delivered or permanently failed.
    */
-  private async markSettled(
-    id: string,
-    data: Prisma.NotificationJobUpdateInput,
-  ): Promise<void> {
+  private async markSettled(id: string, data: Prisma.NotificationJobUpdateInput): Promise<void> {
     try {
       await this.prisma.notificationJob.update({ where: { id }, data });
     } catch (error) {

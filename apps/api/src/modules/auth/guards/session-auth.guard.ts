@@ -18,10 +18,7 @@ import {
   UNSAFE_METHODS,
 } from '../../../common/security/csrf.constants';
 import { safeEqual } from '../../../common/security/tokens';
-import {
-  ALLOW_PENDING_PASSWORD_KEY,
-  IS_PUBLIC_KEY,
-} from '../decorators/auth.decorators';
+import { ALLOW_PENDING_PASSWORD_KEY, IS_PUBLIC_KEY } from '../decorators/auth.decorators';
 import { SessionService } from '../session.service';
 
 /**
@@ -97,10 +94,8 @@ export class SessionAuthGuard implements CanActivate {
 
   private isMarked(context: ExecutionContext, key: string): boolean {
     return (
-      this.reflector.getAllAndOverride<boolean>(key, [
-        context.getHandler(),
-        context.getClass(),
-      ]) ?? false
+      this.reflector.getAllAndOverride<boolean>(key, [context.getHandler(), context.getClass()]) ??
+      false
     );
   }
 
@@ -111,9 +106,12 @@ export class SessionAuthGuard implements CanActivate {
 
     // Non-browser clients (curl, server-to-server) do not send Origin.
     const origin = request.header('origin');
-    const webOrigin = this.config.get('WEB_ORIGIN', { infer: true });
+    const allowedOrigins = [
+      this.config.get('WEB_ORIGIN', { infer: true }),
+      ...(this.config.get('ADDITIONAL_WEB_ORIGINS', { infer: true }) ?? []),
+    ];
 
-    if (origin && origin !== webOrigin) {
+    if (origin && !allowedOrigins.includes(origin)) {
       throw new ForbiddenException({
         code: 'ORIGIN_NOT_ALLOWED',
         message: 'Request origin is not allowed',

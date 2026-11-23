@@ -23,7 +23,8 @@ export default function AdminReportsPage(): ReactNode {
         if (active) setEvents(result.items);
       })
       .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : 'No se pudieron cargar los eventos');
+        if (active)
+          setError(cause instanceof Error ? cause.message : 'No se pudieron cargar los eventos');
       });
     return () => {
       active = false;
@@ -84,26 +85,52 @@ export default function AdminReportsPage(): ReactNode {
       <div className="border-line bg-surface mt-6 grid gap-4 rounded-xl border p-5 sm:grid-cols-2 lg:grid-cols-4">
         <label className="space-y-1.5 text-sm">
           <span className="font-medium">Evento</span>
-          <select className="border-line w-full rounded-lg border bg-white px-3 py-2 text-sm" value={eventId} onChange={(e) => setEventId(e.target.value)}>
+          <select
+            className="border-line w-full rounded-lg border bg-white px-3 py-2 text-sm"
+            value={eventId}
+            onChange={(e) => setEventId(e.target.value)}
+          >
             <option value="">Todos los eventos</option>
-            {events.map((event) => <option key={event.id} value={event.id}>{event.title}</option>)}
+            {events.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.title}
+              </option>
+            ))}
           </select>
         </label>
         <label className="space-y-1.5 text-sm">
           <span className="font-medium">Desde</span>
-          <input className="border-line w-full rounded-lg border bg-white px-3 py-2 text-sm" type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} />
+          <input
+            className="border-line w-full rounded-lg border bg-white px-3 py-2 text-sm"
+            type="datetime-local"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+          />
         </label>
         <label className="space-y-1.5 text-sm">
           <span className="font-medium">Hasta</span>
-          <input className="border-line w-full rounded-lg border bg-white px-3 py-2 text-sm" type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} />
+          <input
+            className="border-line w-full rounded-lg border bg-white px-3 py-2 text-sm"
+            type="datetime-local"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+          />
         </label>
         <div className="flex items-end gap-2">
-          <button className={secondaryButtonClass} onClick={() => void load()}>Generar</button>
-          <button className={secondaryButtonClass} onClick={() => void exportCsv()}>CSV</button>
+          <button className={secondaryButtonClass} onClick={() => void load()}>
+            Generar
+          </button>
+          <button className={secondaryButtonClass} onClick={() => void exportCsv()}>
+            CSV
+          </button>
         </div>
       </div>
 
-      {error ? <div className="mt-5"><Notice>{error}</Notice></div> : null}
+      {error ? (
+        <div className="mt-5">
+          <Notice>{error}</Notice>
+        </div>
+      ) : null}
       {loading ? <Loading /> : null}
 
       {sales ? (
@@ -112,8 +139,14 @@ export default function AdminReportsPage(): ReactNode {
             {[
               { label: 'Pedidos', value: String(sales.totals.orders) },
               { label: 'Entradas vendidas', value: String(sales.totals.ticketsSold) },
-              { label: 'Ingreso bruto', value: formatMoney(sales.totals.grossRevenue, sales.currency) },
-              { label: 'Ingreso neto', value: formatMoney(sales.totals.netRevenue, sales.currency) },
+              {
+                label: 'Ingreso bruto',
+                value: formatMoney(sales.totals.grossRevenue, sales.currency),
+              },
+              {
+                label: 'Ingreso neto',
+                value: formatMoney(sales.totals.netRevenue, sales.currency),
+              },
             ].map((card) => (
               <div key={card.label} className="border-line bg-surface rounded-xl border p-5">
                 <p className="text-ink-muted text-xs">{card.label}</p>
@@ -125,7 +158,9 @@ export default function AdminReportsPage(): ReactNode {
           <section className="border-line bg-surface rounded-xl border p-6">
             <h2 className="text-lg font-semibold">Ventas por tipo de entrada</h2>
             {sales.byTicketType.length === 0 ? (
-              <div className="mt-4"><EmptyState>No hay ventas en el periodo seleccionado.</EmptyState></div>
+              <div className="mt-4">
+                <EmptyState>No hay ventas en el periodo seleccionado.</EmptyState>
+              </div>
             ) : (
               <div className="mt-5 overflow-x-auto">
                 <table className="w-full text-left text-sm">
@@ -143,7 +178,9 @@ export default function AdminReportsPage(): ReactNode {
                         <td className="py-3">{row.eventTitle}</td>
                         <td className="py-3">{row.ticketTypeName}</td>
                         <td className="py-3">{row.ticketsSold}</td>
-                        <td className="py-3 text-right font-semibold">{formatMoney(row.grossRevenue, sales.currency)}</td>
+                        <td className="py-3 text-right font-semibold">
+                          {formatMoney(row.grossRevenue, sales.currency)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -169,7 +206,10 @@ export default function AdminReportsPage(): ReactNode {
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-sm">Tasa de asistencia: <span className="font-semibold">{attendance.attendanceRate}%</span></p>
+              <p className="mt-4 text-sm">
+                Tasa de asistencia:{' '}
+                <span className="font-semibold">{attendance.attendanceRate}%</span>
+              </p>
             </section>
           ) : null}
         </div>

@@ -33,7 +33,9 @@ import { UsersModule } from './modules/users/users.module';
     ThrottlerModule.forRoot({
       throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
     }),
-    ScheduleModule.forRoot(),
+    // Integration tests invoke the worker explicitly; an automatic cron in
+    // every test app can steal jobs from a suite that is still running.
+    ...(process.env.NODE_ENV === 'test' ? [] : [ScheduleModule.forRoot()]),
     PrismaModule,
     SecurityModule,
     AuditModule,

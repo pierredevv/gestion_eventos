@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { Badge, buttonClass, EmptyState, Field, inputClass, Loading, Notice, secondaryButtonClass } from '@/components/ui';
+import {
+  Badge,
+  buttonClass,
+  EmptyState,
+  Field,
+  inputClass,
+  Loading,
+  Notice,
+  secondaryButtonClass,
+} from '@/components/ui';
 import { apiFetch, apiSend, ApiRequestError } from '@/lib/api';
 import { formatDateTime, formatMoney } from '@/lib/format';
 import type { PaginatedSubmissions, PaymentSubmissionView } from '@/lib/types';
@@ -45,10 +54,16 @@ export default function AdminPaymentsPage(): ReactNode {
     setError('');
     setNotice('');
     try {
-      await apiSend(`/admin/payments/submissions/${selected.id}/${action}`, 'PATCH',
+      await apiSend(
+        `/admin/payments/submissions/${selected.id}/${action}`,
+        'PATCH',
         action === 'reject' ? { notes: rejectNotes } : undefined,
       );
-      setNotice(action === 'approve' ? 'Pago aprobado; entradas en camino.' : 'Pago rechazado; el comprador puede reintentar.');
+      setNotice(
+        action === 'approve'
+          ? 'Pago aprobado; entradas en camino.'
+          : 'Pago rechazado; el comprador puede reintentar.',
+      );
       setSelected(null);
       setRejectNotes('');
       load();
@@ -82,11 +97,21 @@ export default function AdminPaymentsPage(): ReactNode {
             <option value="REJECTED">Rechazados</option>
           </select>
         </label>
-        <button className={secondaryButtonClass} onClick={load}>Actualizar</button>
+        <button className={secondaryButtonClass} onClick={load}>
+          Actualizar
+        </button>
       </div>
 
-      {error ? <div className="mt-5"><Notice>{error}</Notice></div> : null}
-      {notice ? <div className="mt-5"><Notice kind="success">{notice}</Notice></div> : null}
+      {error ? (
+        <div className="mt-5">
+          <Notice>{error}</Notice>
+        </div>
+      ) : null}
+      {notice ? (
+        <div className="mt-5">
+          <Notice kind="success">{notice}</Notice>
+        </div>
+      ) : null}
 
       <div className="mt-6 space-y-3">
         {loading ? <Loading /> : null}
@@ -101,34 +126,64 @@ export default function AdminPaymentsPage(): ReactNode {
                   <h2 className="text-base font-semibold">{item.orderCode}</h2>
                   <Badge status={item.reviewStatus} />
                 </div>
-                <p className="text-ink-muted mt-1 text-xs">{item.eventTitle} · {item.buyerName} · {item.buyerEmail}</p>
+                <p className="text-ink-muted mt-1 text-xs">
+                  {item.eventTitle} · {item.buyerName} · {item.buyerEmail}
+                </p>
               </div>
               <div className="text-right">
                 <p className="font-semibold">{formatMoney(item.declaredAmount, item.currency)}</p>
-                <p className="text-ink-muted text-xs">Esperado: {formatMoney(item.expectedAmount, item.currency)}</p>
+                <p className="text-ink-muted text-xs">
+                  Esperado: {formatMoney(item.expectedAmount, item.currency)}
+                </p>
               </div>
             </div>
             <dl className="text-ink-muted mt-4 grid gap-2 text-xs sm:grid-cols-3">
-              <div><dt>Enviado</dt><dd className="text-ink">{formatDateTime(item.submittedAt)}</dd></div>
-              <div><dt>Referencia</dt><dd className="text-ink">{item.paymentReference ?? '—'}</dd></div>
-              <div><dt>Intento</dt><dd className="text-ink">{item.paymentAttempts}</dd></div>
+              <div>
+                <dt>Enviado</dt>
+                <dd className="text-ink">{formatDateTime(item.submittedAt)}</dd>
+              </div>
+              <div>
+                <dt>Referencia</dt>
+                <dd className="text-ink">{item.paymentReference ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>Intento</dt>
+                <dd className="text-ink">{item.paymentAttempts}</dd>
+              </div>
             </dl>
             <div className="mt-4 flex flex-wrap gap-2">
-              <a className={secondaryButtonClass} href={item.receiptUrl} target="_blank" rel="noreferrer">
+              <a
+                className={secondaryButtonClass}
+                href={item.receiptUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Ver comprobante
               </a>
               {item.reviewStatus === 'PENDING' ? (
-                <button className={buttonClass} disabled={busy} onClick={() => { setSelected(item); void review('approve'); }}>
+                <button
+                  className={buttonClass}
+                  disabled={busy}
+                  onClick={() => {
+                    setSelected(item);
+                    void review('approve');
+                  }}
+                >
                   Aprobar
                 </button>
               ) : null}
               {item.reviewStatus === 'PENDING' ? (
-                <button className={secondaryButtonClass} onClick={() => setSelected(item)}>Rechazar…</button>
+                <button className={secondaryButtonClass} onClick={() => setSelected(item)}>
+                  Rechazar…
+                </button>
               ) : null}
             </div>
             {selected?.id === item.id && item.reviewStatus === 'PENDING' ? (
               <div className="border-line mt-4 space-y-3 border-t pt-4">
-                <Field label="Motivo del rechazo" hint="Se mostrará al comprador para que pueda corregir el envío.">
+                <Field
+                  label="Motivo del rechazo"
+                  hint="Se mostrará al comprador para que pueda corregir el envío."
+                >
                   <textarea
                     className={inputClass}
                     rows={2}
@@ -137,10 +192,16 @@ export default function AdminPaymentsPage(): ReactNode {
                   />
                 </Field>
                 <div className="flex gap-2">
-                  <button className={buttonClass} disabled={busy} onClick={() => void review('reject')}>
+                  <button
+                    className={buttonClass}
+                    disabled={busy}
+                    onClick={() => void review('reject')}
+                  >
                     Confirmar rechazo
                   </button>
-                  <button className={secondaryButtonClass} onClick={() => setSelected(null)}>Cancelar</button>
+                  <button className={secondaryButtonClass} onClick={() => setSelected(null)}>
+                    Cancelar
+                  </button>
                 </div>
               </div>
             ) : null}
@@ -153,9 +214,23 @@ export default function AdminPaymentsPage(): ReactNode {
 
       {totalPages > 1 ? (
         <div className="mt-6 flex items-center justify-center gap-4 text-sm">
-          <button className={secondaryButtonClass} disabled={page === 1} onClick={() => setPage(page - 1)}>Anterior</button>
-          <span className="text-ink-muted">Página {page} de {totalPages}</span>
-          <button className={secondaryButtonClass} disabled={page === totalPages} onClick={() => setPage(page + 1)}>Siguiente</button>
+          <button
+            className={secondaryButtonClass}
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+          >
+            Anterior
+          </button>
+          <span className="text-ink-muted">
+            Página {page} de {totalPages}
+          </span>
+          <button
+            className={secondaryButtonClass}
+            disabled={page === totalPages}
+            onClick={() => setPage(page + 1)}
+          >
+            Siguiente
+          </button>
         </div>
       ) : null}
     </div>

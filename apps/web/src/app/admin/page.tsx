@@ -18,7 +18,8 @@ export default function AdminDashboard(): ReactNode {
         if (active) setReport(result);
       })
       .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : 'No se pudo cargar el resumen');
+        if (active)
+          setError(cause instanceof Error ? cause.message : 'No se pudo cargar el resumen');
       });
     return () => {
       active = false;
@@ -44,7 +45,9 @@ export default function AdminDashboard(): ReactNode {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Resumen</h1>
-          <p className="text-ink-muted mt-2 text-sm">Ventas confirmadas y estado general de la operación.</p>
+          <p className="text-ink-muted mt-2 text-sm">
+            Ventas confirmadas y estado general de la operación.
+          </p>
         </div>
         <button
           className="border-line bg-surface rounded-lg border px-4 py-2 text-sm font-semibold"
@@ -67,8 +70,14 @@ export default function AdminDashboard(): ReactNode {
             {[
               { label: 'Pedidos confirmados', value: String(report.totals.orders) },
               { label: 'Entradas vendidas', value: String(report.totals.ticketsSold) },
-              { label: 'Ingreso neto', value: formatMoney(report.totals.netRevenue, report.currency) },
-              { label: 'Ticket promedio', value: formatMoney(report.totals.averageOrderValue, report.currency) },
+              {
+                label: 'Ingreso neto',
+                value: formatMoney(report.totals.netRevenue, report.currency),
+              },
+              {
+                label: 'Ticket promedio',
+                value: formatMoney(report.totals.averageOrderValue, report.currency),
+              },
             ].map((card) => (
               <div key={card.label} className="border-line bg-surface rounded-xl border p-5">
                 <p className="text-ink-muted text-xs">{card.label}</p>

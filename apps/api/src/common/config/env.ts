@@ -16,6 +16,19 @@ const optionalString = z.preprocess(emptyToUndefined, z.string().min(1).optional
 const optionalUrl = z.preprocess(emptyToUndefined, z.url().optional());
 const optionalEncryptionKey = z.preprocess(emptyToUndefined, base64Key.optional());
 
+/** Browsers never send a trailing slash in Origin, so normalise configured URLs. */
+const normalizeOrigin = (value: unknown): unknown =>
+  typeof value === 'string' ? value.trim().replace(/\/+$/, '') : value;
+
+/** Comma-separated allowlist for Vercel preview URLs and future custom domains. */
+const originList = z.preprocess((value) => {
+  if (typeof value !== 'string' || value.trim() === '') return [];
+  return value
+    .split(',')
+    .map((item) => normalizeOrigin(item))
+    .filter((item): item is string => typeof item === 'string' && item.length > 0);
+}, z.array(z.url()).optional());
+
 /** `z.coerce.boolean()` treats the string "false" as true, so parse explicitly. */
 const booleanFromString = z.preprocess((value) => {
   if (typeof value === 'boolean') {
@@ -37,7 +50,13 @@ export const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65535).default(4000),
-    WEB_ORIGIN: z.url().default('http://localhost:3000'),
+    WEB_ORIGIN: z.preprocess(normalizeOrigin, z.url().default('http://localhost:3000')),
+    ADDITIONAL_WEB_ORIGINS: originList,
+    /**
+     * Vercel and Railway use different registrable domains, so production needs
+     * `none` for the session/CSRF cookies to be sent on cross-site fetches.
+     */
+    COOKIE_SAME_SITE: z.enum(['lax', 'none', 'strict']).default('lax'),
 
     DATABASE_URL: optionalString,
     DIRECT_URL: optionalString,
@@ -131,6 +150,16 @@ export const envSchema = z
         path: ['WEB_ORIGIN'],
         message: 'WEB_ORIGIN must use HTTPS in production',
       });
+    }
+
+    for (const origin of value.ADDITIONAL_WEB_ORIGINS ?? []) {
+      if (!origin.startsWith('https://')) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['ADDITIONAL_WEB_ORIGINS'],
+          message: 'every additional web origin must use HTTPS in production',
+        });
+      }
     }
   });
 

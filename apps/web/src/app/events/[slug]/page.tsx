@@ -37,7 +37,8 @@ export default function EventDetailPage(): ReactNode {
         setTicketTypeId(first?.id ?? result.ticketTypes[0]?.id ?? '');
       })
       .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : 'No se pudo cargar el evento');
+        if (active)
+          setError(cause instanceof Error ? cause.message : 'No se pudo cargar el evento');
       });
     return () => {
       active = false;
@@ -61,6 +62,28 @@ export default function EventDetailPage(): ReactNode {
 
   async function submit(): Promise<void> {
     if (!event || !selected) return;
+    const hasEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+    if (
+      buyer.buyerName.trim().length < 2 ||
+      buyer.buyerPhone.trim().length < 5 ||
+      !hasEmail(buyer.buyerEmail)
+    ) {
+      setError('Completa el nombre, el correo y el teléfono del comprador.');
+      return;
+    }
+    if (
+      attendees
+        .slice(0, quantity)
+        .some(
+          (attendee) =>
+            attendee.fullName.trim().length < 2 ||
+            !hasEmail(attendee.email) ||
+            attendee.email.trim().length > 254,
+        )
+    ) {
+      setError('Completa el nombre y un correo válido para cada asistente.');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
@@ -77,7 +100,9 @@ export default function EventDetailPage(): ReactNode {
         ],
       });
       sessionStorage.setItem(`order:${result.order.orderCode}`, result.accessToken);
-      router.push(`/orders/${result.order.orderCode}?token=${encodeURIComponent(result.accessToken)}`);
+      router.push(
+        `/orders/${result.order.orderCode}?token=${encodeURIComponent(result.accessToken)}`,
+      );
     } catch (cause) {
       setError(
         cause instanceof ApiRequestError
@@ -142,7 +167,9 @@ export default function EventDetailPage(): ReactNode {
                   resizeAttendees(1);
                 }}
                 className={`border-line bg-surface w-full rounded-xl border p-4 text-left transition-colors ${
-                  type.id === ticketTypeId ? 'border-accent ring-2 ring-accent/15' : 'hover:border-ink'
+                  type.id === ticketTypeId
+                    ? 'border-accent ring-2 ring-accent/15'
+                    : 'hover:border-ink'
                 }`}
               >
                 <div className="flex items-center justify-between gap-4">
@@ -226,9 +253,7 @@ export default function EventDetailPage(): ReactNode {
                       onChange={(change) =>
                         setAttendees((current) =>
                           current.map((item, itemIndex) =>
-                            itemIndex === index
-                              ? { ...item, fullName: change.target.value }
-                              : item,
+                            itemIndex === index ? { ...item, fullName: change.target.value } : item,
                           ),
                         )
                       }

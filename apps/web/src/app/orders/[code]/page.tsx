@@ -41,7 +41,8 @@ export default function OrderPage(): ReactNode {
         setForm((current) => ({ ...current, declaredAmount: result.order.totalAmount }));
       })
       .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : 'No se pudo cargar el pedido');
+        if (active)
+          setError(cause instanceof Error ? cause.message : 'No se pudo cargar el pedido');
       });
     return () => {
       active = false;
@@ -58,7 +59,9 @@ export default function OrderPage(): ReactNode {
     setSuccess('');
     const body = new FormData();
     body.append('declaredAmount', form.declaredAmount);
-    body.append('paymentReference', form.paymentReference);
+    if (form.paymentReference.trim()) {
+      body.append('paymentReference', form.paymentReference.trim());
+    }
     body.append('receipt', receipt);
     try {
       await apiUpload(
@@ -72,7 +75,9 @@ export default function OrderPage(): ReactNode {
       setOrder(result.order);
     } catch (cause) {
       setError(
-        cause instanceof ApiRequestError ? `${cause.message}${cause.code ? ` (${cause.code})` : ''}` : 'No se pudo enviar el comprobante',
+        cause instanceof ApiRequestError
+          ? `${cause.message}${cause.code ? ` (${cause.code})` : ''}`
+          : 'No se pudo enviar el comprobante',
       );
     } finally {
       setBusy(false);
@@ -141,10 +146,14 @@ export default function OrderPage(): ReactNode {
           <section className="border-line bg-surface rounded-xl border p-6">
             <h2 className="text-lg font-semibold">Resumen</h2>
             <div className="text-ink-muted mt-4 space-y-1 text-sm">
-              <p>Comprador: {order.buyerName} · {order.buyerEmail}</p>
+              <p>
+                Comprador: {order.buyerName} · {order.buyerEmail}
+              </p>
               <p>Creado: {formatDateTime(order.createdAt)}</p>
               {order.expiresAt ? <p>Reserva hasta: {formatDateTime(order.expiresAt)}</p> : null}
-              {order.rejectionReason ? <p className="text-accent">Último rechazo: {order.rejectionReason}</p> : null}
+              {order.rejectionReason ? (
+                <p className="text-accent">Último rechazo: {order.rejectionReason}</p>
+              ) : null}
             </div>
             <ul className="border-line divide-line mt-6 divide-y border-y">
               {order.items.map((item) => (
@@ -184,7 +193,11 @@ export default function OrderPage(): ReactNode {
                 <Link className={buttonClass} href="/tickets">
                   Ver mis entradas
                 </Link>
-                <button className="border-line rounded-lg border px-4 py-2.5 text-sm font-semibold" disabled={busy} onClick={() => void resendTickets()}>
+                <button
+                  className="border-line rounded-lg border px-4 py-2.5 text-sm font-semibold"
+                  disabled={busy}
+                  onClick={() => void resendTickets()}
+                >
                   Reenviar entradas
                 </button>
               </div>
@@ -207,8 +220,8 @@ export default function OrderPage(): ReactNode {
                 />
               ) : (
                 <Notice kind="info">
-                  Configura `NEXT_PUBLIC_PAYMENT_QR_URL` con la imagen del QR bancario facilitada por
-                  la organización.
+                  Configura `NEXT_PUBLIC_PAYMENT_QR_URL` con la imagen del QR bancario facilitada
+                  por la organización.
                 </Notice>
               )}
               <div className="mt-6 space-y-4">
@@ -224,7 +237,9 @@ export default function OrderPage(): ReactNode {
                   <input
                     className={inputClass}
                     value={form.paymentReference}
-                    onChange={(change) => setForm({ ...form, paymentReference: change.target.value })}
+                    onChange={(change) =>
+                      setForm({ ...form, paymentReference: change.target.value })
+                    }
                   />
                 </Field>
                 <Field label="Comprobante (PDF, PNG o JPG, máx. 5 MB)">
@@ -235,7 +250,11 @@ export default function OrderPage(): ReactNode {
                     onChange={(change) => setReceipt(change.target.files?.[0] ?? null)}
                   />
                 </Field>
-                <button className={`${buttonClass} w-full`} disabled={busy} onClick={() => void submitPayment()}>
+                <button
+                  className={`${buttonClass} w-full`}
+                  disabled={busy}
+                  onClick={() => void submitPayment()}
+                >
                   {busy ? 'Enviando…' : 'Enviar comprobante'}
                 </button>
               </div>
