@@ -209,7 +209,7 @@ model Event {
   createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  createdBy   User        @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdBy   User         @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
   ticketTypes TicketType[]
   orders      Order[]
 
@@ -363,7 +363,7 @@ model Payment {
   createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  order              Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
   submissions        PaymentSubmission[] @relation("PaymentSubmissions")
   approvedSubmission PaymentSubmission?  @relation("PaymentApprovedSubmission", fields: [approvedSubmissionId], references: [id], onDelete: SetNull)
   reviewedBy         User?               @relation("PaymentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
@@ -389,10 +389,10 @@ model PaymentSubmission {
   reviewNotes     String?                 @map("review_notes") @db.VarChar(500)
   createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  payment          Payment           @relation("PaymentSubmissions", fields: [paymentId], references: [id], onDelete: Cascade)
-  submittedBy      User?             @relation("SubmissionSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
-  reviewedBy       User?             @relation("SubmissionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  approvedByPayment Payment?         @relation("PaymentApprovedSubmission")
+  payment           Payment  @relation("PaymentSubmissions", fields: [paymentId], references: [id], onDelete: Cascade)
+  submittedBy       User?    @relation("SubmissionSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+  reviewedBy        User?    @relation("SubmissionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  approvedByPayment Payment? @relation("PaymentApprovedSubmission")
 
   @@index([paymentId, submittedAt])
   @@index([reviewStatus])
@@ -430,12 +430,12 @@ model Ticket {
 }
 
 model CheckIn {
-  id         String   @id @default(uuid()) @db.Uuid
-  ticketId   String   @unique @map("ticket_id") @db.Uuid
-  checkedById String  @map("checked_by") @db.Uuid
-  checkedAt  DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
-  ipAddress  String?  @map("ip_address") @db.VarChar(45)
-  userAgent  String?  @map("user_agent") @db.VarChar(255)
+  id          String   @id @default(uuid()) @db.Uuid
+  ticketId    String   @unique @map("ticket_id") @db.Uuid
+  checkedById String   @map("checked_by") @db.Uuid
+  checkedAt   DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.VarChar(255)
 
   ticket    Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
   checkedBy User   @relation(fields: [checkedById], references: [id], onDelete: Restrict)
