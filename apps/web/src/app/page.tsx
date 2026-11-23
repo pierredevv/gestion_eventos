@@ -45,12 +45,15 @@ const flow = [
 const phases = [
   { name: 'F1 · Fundaciones del monorepo', status: 'Completada' },
   { name: 'F2 · Esquema de datos y restricciones', status: 'Completada' },
-  { name: 'F3 · Autenticación y roles', status: 'Siguiente' },
-  { name: 'F4 · Eventos y tipos de entrada', status: 'Pendiente' },
-  { name: 'F5 · Órdenes e inventario', status: 'Pendiente' },
-  { name: 'F6 · Pagos y revisión', status: 'Pendiente' },
-  { name: 'F7 · Tickets y notificaciones', status: 'Pendiente' },
-  { name: 'F8 · Escáner y check-in', status: 'Pendiente' },
+  { name: 'F3 · Autenticación y roles', status: 'Completada' },
+  { name: 'F4 · Eventos y tipos de entrada', status: 'Completada' },
+  { name: 'F5 · Órdenes e inventario', status: 'Completada' },
+  { name: 'F6 · Pagos y revisión', status: 'Completada' },
+  { name: 'F7 · Tickets y notificaciones', status: 'Completada' },
+  { name: 'F8 · Escáner y check-in', status: 'Completada' },
+  { name: 'F9 · Reportes y exportación', status: 'Completada' },
+  { name: 'F10 · Interfaces pública y administrativa', status: 'En curso' },
+  { name: 'F11 · Hardening y despliegue', status: 'Pendiente' },
 ];
 
 export default function HomePage() {
@@ -107,6 +110,18 @@ export default function HomePage() {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <a
               className="bg-ink text-paper hover:bg-ink/90 rounded-lg px-5 py-3 text-sm font-semibold transition-colors"
+              href="/events"
+            >
+              Ver eventos
+            </a>
+            <a
+              className="border-line hover:border-ink rounded-lg border px-5 py-3 text-sm font-semibold transition-colors"
+              href="/login"
+            >
+              Ingresar al panel
+            </a>
+            <a
+              className="border-line hover:border-ink rounded-lg border px-5 py-3 text-sm font-semibold transition-colors"
               href={apiDocsUrl}
               rel="noreferrer"
               target="_blank"
@@ -233,7 +248,7 @@ export default function HomePage() {
                     className={
                       phase.status === 'Completada'
                         ? 'text-accent text-xs font-semibold'
-                        : phase.status === 'Siguiente'
+                        : phase.status === 'Siguiente' || phase.status === 'En curso'
                           ? 'text-ink text-xs font-semibold'
                           : 'text-ink-muted text-xs font-medium'
                     }

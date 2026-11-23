@@ -111,5 +111,5 @@ Ver `docs/adr/`:
 - [x] F7 — Tickets y notificaciones
 - [x] F8 — Escáner y check-in
 - [x] F9 — Reportes
-- [ ] F10 — Frontend público y administrativo
+- [x] F10 — Frontend público y administrativo
 - [ ] F11 — Hardening y despliegue
