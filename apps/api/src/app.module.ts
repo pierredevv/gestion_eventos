@@ -11,6 +11,7 @@ import { SecurityModule } from './common/security/security.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { SessionAuthGuard } from './modules/auth/guards/session-auth.guard';
+import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './modules/health/health.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -32,6 +33,7 @@ import { UsersModule } from './modules/users/users.module';
     HealthModule,
     AuthModule,
     UsersModule,
+    EventsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

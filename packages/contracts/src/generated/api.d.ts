@@ -226,6 +226,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Browse published events */
+        get: operations["EventsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a published event and its ticket types */
+        get: operations["EventsController_findBySlug"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all events (including drafts) */
+        get: operations["AdminEventsController_list"];
+        put?: never;
+        /** Create an event */
+        post: operations["AdminEventsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/events/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get any event by id */
+        get: operations["AdminEventsController_findOne"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update an event */
+        patch: operations["AdminEventsController_update"];
+        trace?: never;
+    };
+    "/api/v1/admin/events/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish a draft event */
+        post: operations["AdminEventsController_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/events/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel an event */
+        post: operations["AdminEventsController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/events/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an event as completed */
+        post: operations["AdminEventsController_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/events/{id}/ticket-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a ticket type to an event */
+        post: operations["AdminEventsController_createTicketType"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/events/{id}/ticket-types/{ticketTypeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Deactivate a ticket type (soft delete) */
+        delete: operations["AdminEventsController_deactivateTicketType"];
+        options?: never;
+        head?: never;
+        /** Update a ticket type */
+        patch: operations["AdminEventsController_updateTicketType"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -269,6 +425,90 @@ export interface components {
         };
         SetRolesDto: {
             roles: ("SUPER_ADMIN" | "EVENT_MANAGER" | "PAYMENT_REVIEWER" | "CHECK_IN_STAFF")[];
+        };
+        CreateEventDto: {
+            /** @example Concierto de Verano 2027 */
+            title: string;
+            /** @description Auto-generated from the title when omitted */
+            slug?: string;
+            description: string;
+            /** @example Teatro Municipal */
+            location: string;
+            /** @example Av. Colón 123, La Paz */
+            address: string;
+            /** @default America/La_Paz */
+            timezone: string;
+            /** @default BOB */
+            currency: string;
+            /** @description Overall venue capacity */
+            capacity?: Record<string, never> | null;
+            /** @example 2027-03-15T20:00:00Z */
+            startDate: string;
+            /** @example 2027-03-15T23:00:00Z */
+            endDate: string;
+            /** @example 2027-01-10T00:00:00Z */
+            registrationStart: string;
+            /** @example 2027-03-15T19:00:00Z */
+            registrationEnd: string;
+            /** @default false */
+            publishNow: boolean;
+        };
+        UpdateEventDto: {
+            title?: string;
+            slug?: string;
+            description?: string;
+            location?: string;
+            address?: string;
+            timezone?: string;
+            currency?: string;
+            capacity?: Record<string, never> | null;
+            startDate?: string;
+            endDate?: string;
+            registrationStart?: string;
+            registrationEnd?: string;
+        };
+        CreateTicketTypeDto: {
+            /** @example Entrada General */
+            name: string;
+            description?: string;
+            /**
+             * @description Non-negative amount, max two decimals
+             * @example 150.5
+             */
+            price: number;
+            /** @default BOB */
+            currency: string;
+            /** @example 500 */
+            capacity: number;
+            /** @default 1 */
+            minPerOrder: number;
+            /** @default 10 */
+            maxPerOrder: number;
+            /**
+             * Format: date-time
+             * @example 2027-01-10T00:00:00Z
+             */
+            salesStart: string;
+            /**
+             * Format: date-time
+             * @example 2027-03-15T19:00:00Z
+             */
+            salesEnd: string;
+            /** @default true */
+            isActive: boolean;
+        };
+        UpdateTicketTypeDto: {
+            name?: string;
+            description?: string;
+            price?: number;
+            capacity?: number;
+            minPerOrder?: number;
+            maxPerOrder?: number;
+            /** Format: date-time */
+            salesStart?: string;
+            /** Format: date-time */
+            salesEnd?: string;
+            isActive?: boolean;
         };
     };
     responses: never;
@@ -571,6 +811,250 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SetRolesDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EventsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EventsController_findBySlug: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventsController_list: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                status?: "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEventDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEventDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventsController_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventsController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventsController_complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventsController_createTicketType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTicketTypeDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventsController_deactivateTicketType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                ticketTypeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventsController_updateTicketType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                ticketTypeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTicketTypeDto"];
             };
         };
         responses: {
