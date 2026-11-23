@@ -10,10 +10,12 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { SecurityModule } from './common/security/security.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CheckInModule } from './modules/check-in/check-in.module';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { SessionAuthGuard } from './modules/auth/guards/session-auth.guard';
 import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './modules/health/health.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PaymentsModule } from './modules/payments/payments.module';
@@ -44,6 +46,8 @@ import { UsersModule } from './modules/users/users.module';
     PaymentsModule,
     TicketsModule,
     NotificationsModule,
+    CheckInModule,
+    ReportsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

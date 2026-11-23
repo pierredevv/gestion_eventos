@@ -91,6 +91,7 @@ Ver `docs/adr/`:
 - `0009` rechazo de comprobantes y reintentos
 - `0010` estrategia de pruebas
 - `0011` cola durable de notificaciones y emisión idempotente de tickets
+- `0012` check-in: ventana temporal, auditoría y uso único
 
 ## Aclaración sobre los QR
 
@@ -108,7 +109,7 @@ Ver `docs/adr/`:
 - [x] F5 — Órdenes e inventario
 - [x] F6 — Pagos y revisión manual
 - [x] F7 — Tickets y notificaciones
-- [ ] F8 — Escáner y check-in
-- [ ] F9 — Reportes
+- [x] F8 — Escáner y check-in
+- [x] F9 — Reportes
 - [ ] F10 — Frontend público y administrativo
 - [ ] F11 — Hardening y despliegue

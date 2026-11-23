@@ -63,9 +63,10 @@ export class NotificationWorkerService {
         }
         try {
           await this.deliver(job);
-          await this.prisma.notificationJob.update({
-            where: { id },
-            data: { status: NotificationStatus.SENT, sentAt: new Date(), lockedAt: null },
+          await this.markSettled(job.id, {
+            status: NotificationStatus.SENT,
+            sentAt: new Date(),
+            lockedAt: null,
           });
           processed += 1;
         } catch (error) {
@@ -196,15 +197,32 @@ export class NotificationWorkerService {
     this.logger.warn(
       `Notification ${job.id} (${job.type}) failed on attempt ${attempts}: ${message}`,
     );
-    await this.prisma.notificationJob.update({
-      where: { id: job.id },
-      data: {
-        status: dead ? NotificationStatus.DEAD : NotificationStatus.PENDING,
-        attempts,
-        lastError: message.slice(0, 2000),
-        lockedAt: null,
-        nextAttemptAt: new Date(Date.now() + backoffMinutes * 60_000),
-      },
+    await this.markSettled(job.id, {
+      status: dead ? NotificationStatus.DEAD : NotificationStatus.PENDING,
+      attempts,
+      lastError: message.slice(0, 2000),
+      lockedAt: null,
+      nextAttemptAt: new Date(Date.now() + backoffMinutes * 60_000),
     });
+  }
+
+  /**
+   * A job can disappear between delivery and settlement (manual purge, test
+   * teardown, another worker). Losing the final update is harmless: the work
+   * was already delivered or permanently failed.
+   */
+  private async markSettled(
+    id: string,
+    data: Prisma.NotificationJobUpdateInput,
+  ): Promise<void> {
+    try {
+      await this.prisma.notificationJob.update({ where: { id }, data });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        this.logger.debug(`Notification ${id} disappeared before it could be settled`);
+        return;
+      }
+      throw error;
+    }
   }
 }
