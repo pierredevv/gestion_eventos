@@ -20,3 +20,18 @@ export const CurrentUser = createParamDecorator(
     return property ? user[property] : user;
   },
 );
+
+/**
+ * Injects the authenticated user when present, otherwise `undefined`.
+ * Intended for public routes that behave differently for signed-in buyers.
+ */
+export const OptionalCurrentUser = createParamDecorator(
+  (property: keyof AuthenticatedUser | undefined, context: ExecutionContext) => {
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const user = request.user;
+    if (!user) {
+      return undefined;
+    }
+    return property ? user[property] : user;
+  },
+);

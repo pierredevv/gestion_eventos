@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuditModule } from './common/audit/audit.module';
 import { validateEnv } from './common/config/env';
@@ -13,6 +14,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { SessionAuthGuard } from './modules/auth/guards/session-auth.guard';
 import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './modules/health/health.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -26,6 +28,7 @@ import { UsersModule } from './modules/users/users.module';
     ThrottlerModule.forRoot({
       throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     SecurityModule,
     AuditModule,
@@ -34,6 +37,7 @@ import { UsersModule } from './modules/users/users.module';
     AuthModule,
     UsersModule,
     EventsModule,
+    OrdersModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

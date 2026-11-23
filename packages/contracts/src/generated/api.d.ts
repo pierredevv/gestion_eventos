@@ -382,6 +382,74 @@ export interface paths {
         patch: operations["AdminEventsController_updateTicketType"];
         trace?: never;
     };
+    "/api/v1/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create an order and reserve inventory atomically */
+        post: operations["OrdersController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{orderCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an order by code (buyer session or access token required) */
+        get: operations["OrdersController_findOne"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{orderCode}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel an order and release its inventory */
+        post: operations["OrdersController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List orders for an event (payment reviewers) */
+        get: operations["AdminOrdersController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -509,6 +577,33 @@ export interface components {
             /** Format: date-time */
             salesEnd?: string;
             isActive?: boolean;
+        };
+        AttendeeDto: {
+            /** @example María Pérez */
+            fullName: string;
+            /** @example maria@example.com */
+            email: string;
+            phone?: string;
+            documentNumber?: string;
+        };
+        OrderItemDto: {
+            /** Format: uuid */
+            ticketTypeId: string;
+            quantity: number;
+            attendees: components["schemas"]["AttendeeDto"][];
+        };
+        CreateOrderDto: {
+            /** Format: uuid */
+            eventId: string;
+            /** @description Echoed from the Idempotency-Key header when omitted */
+            idempotencyKey?: string;
+            /** @example Juan Carlos Rodríguez */
+            buyerName: string;
+            /** @example juan@example.com */
+            buyerEmail: string;
+            /** @example +591 70000000 */
+            buyerPhone: string;
+            items: components["schemas"]["OrderItemDto"][];
         };
     };
     responses: never;
@@ -1057,6 +1152,88 @@ export interface operations {
                 "application/json": components["schemas"]["UpdateTicketTypeDto"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrdersController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrderDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrdersController_findOne: {
+        parameters: {
+            query?: {
+                /** @description Order access link token */
+                token?: unknown;
+            };
+            header?: never;
+            path: {
+                orderCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrdersController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminOrdersController_list: {
+        parameters: {
+            query: {
+                eventId: string;
+                status?: "PENDING_PAYMENT" | "PENDING_REVIEW" | "CONFIRMED" | "REJECTED" | "EXPIRED" | "CANCELLED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

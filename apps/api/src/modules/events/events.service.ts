@@ -563,7 +563,7 @@ export class EventsService {
       id: type.id,
       name: type.name,
       description: type.description,
-      price: type.price.toString(),
+      price: type.price.toFixed(2),
       currency: type.currency,
       capacity: type.capacity,
       reservedQuantity: type.reservedQuantity,
