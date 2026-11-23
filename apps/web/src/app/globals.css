@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-paper: #f8f6f1;
+  --color-surface: #ffffff;
+  --color-ink: #12141a;
+  --color-ink-muted: #5b6270;
+  --color-line: #e4e0d8;
+  --color-accent: #b8431a;
+  --color-accent-soft: #fdf0e7;
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+}
+
+@layer base {
+  ::selection {
+    background-color: var(--color-accent-soft);
+    color: var(--color-ink);
+  }
+}

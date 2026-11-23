@@ -1,0 +1,23 @@
+{
+  "name": "@eventos/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Contratos compartidos generados desde la especificacion OpenAPI",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "echo \"@eventos/contracts is a source-only package\"",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"no tests in @eventos/contracts\""
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "gestion-eventos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plataforma de gestion de eventos, venta de entradas y control de acceso por QR",
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm -r --if-present test",
+    "dev:api": "pnpm --filter @eventos/api dev",
+    "dev:web": "pnpm --filter @eventos/web dev"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.10.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "^8.73.0"
+  }
+}

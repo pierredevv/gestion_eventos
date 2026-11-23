@@ -1,0 +1,115 @@
+# Plataforma de gestión de eventos, entradas y control de acceso QR
+
+Monolito modular para publicar eventos, vender entradas, validar pagos por QR bancario estático y
+controlar el ingreso mediante tickets individuales con QR.
+
+- **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4.
+- **Backend:** NestJS 12, TypeScript, Prisma 6, PostgreSQL (Supabase).
+- **Almacenamiento:** Supabase Storage, buckets privados.
+- **Correo:** adaptador intercambiable (consola en desarrollo, Resend en producción).
+- **Gestor de paquetes:** pnpm 12 (workspaces).
+
+## Estructura
+
+```text
+apps/
+  api/        NestJS: modulos de dominio, Prisma, migraciones, pruebas
+  web/        Next.js: sitio publico, cuenta, panel administrativo, escaner
+packages/
+  contracts/  Tipos compartidos generados desde OpenAPI
+docs/
+  adr/        Decisiones de arquitectura
+```
+
+## Requisitos
+
+- Node.js 26 LTS (`nvm use`)
+- pnpm 12 (`corepack enable`)
+- Un proyecto Supabase con PostgreSQL y dos buckets privados: `receipts`, `ticket-assets`
+
+## Puesta en marcha
+
+```bash
+pnpm install
+cp .env.example .env          # completar credenciales reales
+pnpm --filter @eventos/api prisma:generate
+pnpm --filter @eventos/api prisma:migrate
+pnpm dev:api                  # http://localhost:4000/api/v1
+pnpm dev:web                  # http://localhost:3000
+```
+
+Comprobaciones:
+
+```bash
+pnpm --filter @eventos/api db:check     # conectividad real contra PostgreSQL
+curl http://localhost:4000/api/v1/health/ready
+open http://localhost:4000/api/docs
+```
+
+## Variables de entorno
+
+Todo se configura en `.env` (ignorado por git). `.env.example` documenta cada variable.
+
+Reglas importantes con Supabase:
+
+1. `DATABASE_URL` usa el **pooler** (puerto 6543) con `pgbouncer=true&connection_limit=1`.
+2. `DIRECT_URL` usa la conexión directa (puerto 5432) y solo se emplea para migraciones.
+3. `SUPABASE_SERVICE_ROLE_KEY` nunca se expone al navegador ni se prefija con `NEXT_PUBLIC_`.
+4. Prisma se conecta por TCP con el rol de base de datos. La autorización vive en NestJS y no
+   depende de RLS.
+5. La migración inicial revoca los privilegios de `anon` y `authenticated` sobre `public`, de modo
+   que la Data API de Supabase no puede leer ni escribir nada aunque la clave publicable sea
+   pública. No vuelvas a otorgar esos privilegios.
+
+## Scripts
+
+| Comando | Descripción |
+|---|---|
+| `pnpm build` | Compila API y web |
+| `pnpm typecheck` | TypeScript estricto en todos los paquetes |
+| `pnpm lint` | ESLint (flat config) |
+| `pnpm test` | Pruebas de todos los paquetes |
+| `pnpm dev:api` / `pnpm dev:web` | Desarrollo |
+| `pnpm --filter @eventos/api prisma:migrate` | Aplica migraciones pendientes |
+| `pnpm --filter @eventos/api db:check` | Verifica la conexión a la base de datos |
+| `pnpm --filter @eventos/api openapi:generate` | Regenera `openapi.json` y los tipos de `packages/contracts` |
+
+## Decisiones clave
+
+Ver `docs/adr/`:
+
+- `0001` monolito modular y monorepo
+- `0002` Supabase (PostgreSQL + Storage privado)
+- `0003` Prisma 6 sobre NestJS CommonJS
+- `0004` OpenAPI como fuente única de contratos
+- `0005` inventario, reservas y concurrencia
+- `0006` tokens de ticket (hash + cifrado)
+- `0007` sesiones opacas y CSRF
+- `0008` dinero (`NUMERIC(12,2)`, BOB) y zona horaria
+- `0009` rechazo de comprobantes y reintentos
+
+## Aclaración sobre los QR
+
+- **QR de pago:** imagen estática proporcionada por la administración. El sistema **no** la genera;
+  solo la almacena y la muestra con el monto exacto y las instrucciones.
+- **QR de ticket:** lo genera el sistema, uno por asistente, con un token aleatorio. Nunca contiene
+  datos personales.
+
+## Estado
+
+- [x] F1 — Fundaciones del monorepo
+- [x] F2 — Esquema de datos y restricciones SQL
+
+> **Pendiente de credenciales:** la migración inicial está generada pero aún no se aplicó a
+> Supabase porque falta `DATABASE_URL`/`DIRECT_URL` reales en `.env`. Ejecuta
+> `pnpm --filter @eventos/api prisma:migrate` después de completarlas.
+
+- [ ] F3 — Autenticación y roles
+- [ ] F4 — Eventos y tipos de entrada
+- [ ] F5 — Órdenes e inventario
+- [ ] F6 — Pagos y revisión
+- [ ] F7 — Tickets y notificaciones
+- [ ] F8 — Escáner y check-in
+- [ ] F9 — Reportes
+- [ ] F10 — Frontend público y administrativo
+- [ ] F11 — Hardening y despliegue

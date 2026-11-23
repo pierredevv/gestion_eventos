@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.next/
+out/
+*.tsbuildinfo
+
+# Generated
+coverage/
+
+# Local OpenAPI artifact (the generated types in packages/contracts are committed)
+apps/api/openapi.json
+
+# Environment (never commit real credentials)
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Local storage (development fallback for private files)
+storage/
