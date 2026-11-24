@@ -5,7 +5,7 @@
 **Rama:** `master`  
 **Commit de código desplegado:** `42bb858`
 
-**Commit de la API desplegada en Render:** `4fb84b6` (deploy `dep-dc2uqu3l550s73c9rm60`, estado `live`)
+**Commit de la API desplegada en Render:** `711fd0f` (deploy `dep-dc2volqvcj2c73aj2et0`, estado `live`)
 
 **Commit del frontend desplegado en Vercel:** `42bb858` (deploy `dpl_6fqqvLqKSpPkN9drmQGKwgJFcE6e`, `READY`)
 
@@ -28,6 +28,11 @@
 > `publishedAt = 2026-11-24T20:43:13.537Z`). Las secciones técnicas posteriores conservan el estado
 > original de la investigación; esta nota y las secciones 11, 13, 14 y 15 reflejan el estado final
 > verificado.
+>
+> **Actualización 2026-11-24 21:08 UTC:** se corrigió el bloqueo del botón “Continuar al pago”. La
+> creación de orden esperaba al envío de correo, que se colgaba por el proveedor SMTP; ahora la
+> respuesta se envía antes de esa operación best-effort y el correo tiene tiempos de espera acotados.
+> Ver la sección 16.
 
 > Clasificación usada: **PASS** = verificado con evidencia; **FAIL** = verificado y negativo; **BLOCKED** = impedimento real que requiere acción/autorización; **NOT TESTED** = no ejecutado.
 
@@ -327,7 +332,7 @@ Observación: no se habilitaron ventas pagadas y no se ejecutaron pagos reales.
 
 ## 15. Respuestas directas
 
-1. **¿El sistema está desplegado?** Sí. API `live` en Render en `4fb84b6`; web `READY` en Vercel en `42bb858` (deploy `dpl_6fqqvLqKSpPkN9drmQGKwgJFcE6e`). El panel administrativo es utilizable.
+1. **¿El sistema está desplegado?** Sí. API `live` en Render en `711fd0f`; web `READY` en Vercel en `42bb858` (deploy `dpl_6fqqvLqKSpPkN9drmQGKwgJFcE6e`). El panel administrativo es utilizable.
 2. **¿Cuál es la URL pública?** https://gestion-eventos-pi.vercel.app
 3. **¿El frontend se comunica correctamente con el backend?** Sí. `/health` 200, `/health/ready` 200 y `/events?limit=100` 200; el error 400 por `limit` quedó corregido.
 4. **¿La base de datos funciona?** Sí. La API usa el session pooler IPv4; `DIRECT_URL` queda reservado para migraciones desde hosts con IPv6.
@@ -339,3 +344,33 @@ Observación: no se habilitaron ventas pagadas y no se ejecutaron pagos reales.
 10. **¿Se pueden validar los QR?** No con tickets reales de producción; localmente el doble scan fue rechazado con `409`.
 11. **¿El evento NEXT LEVEL está creado?** **Sí**, publicado, con lugar y dirección confirmados persistidos y una entrada `General` de 50 BOB / cupo 120 activa y a la venta.
 12. **¿Qué falta para publicarlo y abrir ventas?** Nada: se publicó y activó con autorización explícita. Lo que queda es verificar compra, comprobante, aprobación, tickets, correo y check-in sin pagos reales. No se agregaron campos nuevos para eslogan, categoría, organizador, contacto, programa ni logo; esa información quedó en `description`.
+
+---
+
+## 16. Incidente: botón “Continuar al pago” sin respuesta
+
+**Síntoma:** la orden se creaba en base de datos, pero la web permanecía en “Reservando…” y no
+redirigía al pedido.
+
+**Causa raíz:** `OrdersService.create` hacía `await this.email.send(...)` aunque el envío de correo
+está diseñado como best-effort. El transporte SMTP de Render registraba `Connection timeout`, por lo
+que la respuesta HTTP no se completaba y el navegador seguía esperando. Existía además un
+`NotificationJob` duradero que ya cubre la entrega, así que esperar al correo era innecesario.
+
+**Corrección (commit `711fd0f`):**
+
+- `apps/api/src/modules/orders/orders.service.ts`: el correo se dispara sin `await` y con `.catch()`,
+  por lo que nunca retrasa la respuesta de la orden.
+- `apps/api/src/common/email/email.service.ts`: timeouts acotados para Resend (10 s) y SMTP
+  (5 s conexión/saludo, 10 s socket), para que un proveedor lento no retenga procesos.
+
+**Verificación posterior:**
+
+- `pnpm typecheck` y `pnpm build`: PASS.
+- `test/integration/orders.spec.ts`: 6/6 PASS.
+- Deploy Render `dep-dc2volqvcj2c73aj2et0`: `live`, commit `711fd0f`.
+- Compra de prueba real en navegador: `POST /orders` → `201` en ~3,4 s y redirección a
+  `/orders/ORD-261124-FA8AYC`.
+- Página del pedido: `GET /orders/{code}` → `200`, estado “Esperando pago” y QR bancario cargado
+  (`824x773`, `image/jpeg`).
+- Las órdenes de prueba creadas durante la diagnosis se cancelaron por API para liberar cupo.
