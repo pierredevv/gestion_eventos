@@ -37,11 +37,7 @@ export class CheckInService {
     return this.toPreview(ticket);
   }
 
-  async checkIn(
-    dto: CheckInDto,
-    staffId: string,
-    context: RequestContext,
-  ): Promise<CheckInResult> {
+  async checkIn(dto: CheckInDto, staffId: string, context: RequestContext): Promise<CheckInResult> {
     const ticket = await this.findTicket(dto);
     const event = ticket.order.event;
 
@@ -49,7 +45,10 @@ export class CheckInService {
       throw new ConflictException({ code: 'EVENT_CANCELLED', message: 'The event was cancelled' });
     }
     if (event.status !== EventStatus.PUBLISHED) {
-      throw new ConflictException({ code: 'EVENT_NOT_ACTIVE', message: 'The event is not open for check-in' });
+      throw new ConflictException({
+        code: 'EVENT_NOT_ACTIVE',
+        message: 'The event is not open for check-in',
+      });
     }
 
     const withinWindow = this.isWithinWindow(event.startDate, event.endDate);
@@ -78,15 +77,24 @@ export class CheckInService {
         throw new NotFoundException({ code: 'TICKET_NOT_FOUND', message: 'Ticket not found' });
       }
       if (current.status === TicketStatus.USED) {
-        throw new ConflictException({ code: 'TICKET_ALREADY_USED', message: 'This ticket was already used' });
+        throw new ConflictException({
+          code: 'TICKET_ALREADY_USED',
+          message: 'This ticket was already used',
+        });
       }
       if (current.status === TicketStatus.CANCELLED) {
-        throw new ConflictException({ code: 'TICKET_CANCELLED', message: 'This ticket was cancelled' });
+        throw new ConflictException({
+          code: 'TICKET_CANCELLED',
+          message: 'This ticket was cancelled',
+        });
       }
 
       const existing = await tx.checkIn.findUnique({ where: { ticketId: ticket.id } });
       if (existing) {
-        throw new ConflictException({ code: 'TICKET_ALREADY_USED', message: 'This ticket was already used' });
+        throw new ConflictException({
+          code: 'TICKET_ALREADY_USED',
+          message: 'This ticket was already used',
+        });
       }
 
       const record = await tx.checkIn.create({
@@ -167,7 +175,10 @@ export class CheckInService {
       }
       return ticket;
     }
-    throw new BadRequestException({ code: 'TICKET_IDENTIFIER_REQUIRED', message: 'Provide a token or ticket code' });
+    throw new BadRequestException({
+      code: 'TICKET_IDENTIFIER_REQUIRED',
+      message: 'Provide a token or ticket code',
+    });
   }
 
   private isWithinWindow(startDate: Date, endDate: Date): boolean {

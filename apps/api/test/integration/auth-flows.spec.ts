@@ -19,7 +19,14 @@ import { hashPassword } from '../../src/common/security/password';
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const describeWithDatabase = testDatabaseUrl ? describe : describe.skip;
 
-const TABLES = ['audit_logs', 'sessions', 'verification_tokens', 'user_roles', 'roles', 'users'] as const;
+const TABLES = [
+  'audit_logs',
+  'sessions',
+  'verification_tokens',
+  'user_roles',
+  'roles',
+  'users',
+] as const;
 
 const ADMIN_EMAIL = 'auth-admin@example.com';
 const ADMIN_TEMP_PASSWORD = 'TempAdmin123!';
@@ -116,9 +123,8 @@ describeWithDatabase('auth flows', () => {
         emailVerifiedAt: new Date(),
         roles: {
           create: {
-            roleId: (
-              await prisma.role.findUniqueOrThrow({ where: { name: RoleName.SUPER_ADMIN } })
-            ).id,
+            roleId: (await prisma.role.findUniqueOrThrow({ where: { name: RoleName.SUPER_ADMIN } }))
+              .id,
           },
         },
       },
@@ -136,10 +142,7 @@ describeWithDatabase('auth flows', () => {
   }
 
   function login(agent: Agent, csrf: string, email = ADMIN_EMAIL, password = ADMIN_TEMP_PASSWORD) {
-    return agent
-      .post('/api/v1/auth/login')
-      .set('X-CSRF-Token', csrf)
-      .send({ email, password });
+    return agent.post('/api/v1/auth/login').set('X-CSRF-Token', csrf).send({ email, password });
   }
 
   it('login sets an httpOnly session cookie and exposes the forced-change flag', async () => {
@@ -149,7 +152,9 @@ describeWithDatabase('auth flows', () => {
 
     const cookies = (response.headers as Record<string, unknown>)['set-cookie'];
     const list = Array.isArray(cookies) ? cookies : [];
-    expect(list.some((header) => header.startsWith('session=') && /HttpOnly/i.test(header))).toBe(true);
+    expect(list.some((header) => header.startsWith('session=') && /HttpOnly/i.test(header))).toBe(
+      true,
+    );
 
     expect(response.body.user.email).toBe(ADMIN_EMAIL);
     expect(response.body.user.mustChangePassword).toBe(true);

@@ -5,7 +5,7 @@
 
 ## Contexto
 
-Prisma 7 exige ESM, `prisma.config.ts`, un *driver adapter* (`@prisma/adapter-pg`) y un `output`
+Prisma 7 exige ESM, `prisma.config.ts`, un _driver adapter_ (`@prisma/adapter-pg`) y un `output`
 obligatorio para el cliente generado. NestJS 12 se construye por defecto como CommonJS con
 decoradores y `emitDecoratorMetadata`.
 

@@ -270,7 +270,12 @@ describeWithDatabase('check-in', () => {
       .expect(200);
     const ticket = portal.body.tickets[0] as { ticketCode: string; qrPayload: string };
     const row = await prisma.ticket.findFirstOrThrow({ where: { orderId: order.orderId } });
-    return { ...order, ticketId: row.id, ticketCode: ticket.ticketCode, qrPayload: ticket.qrPayload };
+    return {
+      ...order,
+      ticketId: row.id,
+      ticketCode: ticket.ticketCode,
+      qrPayload: ticket.qrPayload,
+    };
   }
 
   it('previews, checks in within the window and rejects a second use', async () => {
@@ -318,9 +323,7 @@ describeWithDatabase('check-in', () => {
       .expect(409);
     expect(second.body.code).toBe('TICKET_ALREADY_USED');
 
-    const list = await staff.agent
-      .get(`/api/v1/admin/events/${eventId}/check-ins`)
-      .expect(200);
+    const list = await staff.agent.get(`/api/v1/admin/events/${eventId}/check-ins`).expect(200);
     expect(list.body).toHaveLength(1);
     expect(list.body[0].ticketCode).toBe(ticket.ticketCode);
 

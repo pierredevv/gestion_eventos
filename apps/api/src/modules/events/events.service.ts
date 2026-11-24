@@ -558,7 +558,10 @@ export class EventsService {
 
   private toTicketTypeView(type: TicketType): TicketTypeView {
     const now = Date.now();
-    const availableQuantity = Math.max(0, type.capacity - type.reservedQuantity - type.soldQuantity);
+    const availableQuantity = Math.max(
+      0,
+      type.capacity - type.reservedQuantity - type.soldQuantity,
+    );
     return {
       id: type.id,
       name: type.name,

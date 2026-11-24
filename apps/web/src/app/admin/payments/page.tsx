@@ -44,8 +44,11 @@ export default function AdminPaymentsPage(): ReactNode {
 
   useEffect(load, [status, page]);
 
-  async function review(action: 'approve' | 'reject'): Promise<void> {
-    if (!selected) return;
+  async function review(
+    action: 'approve' | 'reject',
+    target: PaymentSubmissionView | null = selected,
+  ): Promise<void> {
+    if (!target) return;
     if (action === 'reject' && rejectNotes.trim().length < 3) {
       setError('Indica el motivo del rechazo (al menos 3 caracteres).');
       return;
@@ -55,7 +58,7 @@ export default function AdminPaymentsPage(): ReactNode {
     setNotice('');
     try {
       await apiSend(
-        `/admin/payments/submissions/${selected.id}/${action}`,
+        `/admin/payments/submissions/${target.id}/${action}`,
         'PATCH',
         action === 'reject' ? { notes: rejectNotes } : undefined,
       );
@@ -164,10 +167,7 @@ export default function AdminPaymentsPage(): ReactNode {
                 <button
                   className={buttonClass}
                   disabled={busy}
-                  onClick={() => {
-                    setSelected(item);
-                    void review('approve');
-                  }}
+                  onClick={() => void review('approve', item)}
                 >
                   Aprobar
                 </button>

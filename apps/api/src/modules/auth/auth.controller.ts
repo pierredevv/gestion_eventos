@@ -18,10 +18,7 @@ import { getRequestContext } from '../../common/http/request-context';
 import type { AuthenticatedRequest } from '../../common/http/authenticated-request';
 import { AuthService } from './auth.service';
 import type { AuthUserView } from './auth.types';
-import {
-  AllowPendingPasswordChange,
-  Public,
-} from './decorators/auth.decorators';
+import { AllowPendingPasswordChange, Public } from './decorators/auth.decorators';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../common/http/authenticated-request';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -55,10 +52,7 @@ export class AuthController {
   ): Promise<{ user: AuthUserView }> {
     const result = await this.auth.login(dto, getRequestContext(request));
     this.cookies.setSession(response, result.token, result.expiresAt);
-    this.cookies.ensureCsrfToken(
-      response,
-      request.cookies?.[CSRF_COOKIE_NAME],
-    );
+    this.cookies.ensureCsrfToken(response, request.cookies?.[CSRF_COOKIE_NAME]);
     return { user: result.user };
   }
 
@@ -134,11 +128,6 @@ export class AuthController {
     @CurrentUser() user: AuthenticatedUser,
     @Req() request: AuthenticatedRequest,
   ): Promise<void> {
-    await this.auth.changePassword(
-      user.id,
-      user.sessionId,
-      dto,
-      getRequestContext(request),
-    );
+    await this.auth.changePassword(user.id, user.sessionId, dto, getRequestContext(request));
   }
 }

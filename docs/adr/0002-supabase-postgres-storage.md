@@ -33,7 +33,7 @@ probar concurrencia (sobreventa, doble check-in) y un almacenamiento privado par
   tablas). Si se migra a un rol de aplicación dedicado sin `BYPASSRLS`, hay que añadir políticas
   explícitas; de lo contrario todas las consultas fallarán en silencio.
 - Los buckets siguen siendo privados y solo se acceden con URLs firmadas del backend.
-- La app usa la cadena del *pooler* (6543) y las migraciones la conexión directa (5432).
+- La app usa la cadena del _pooler_ (6543) y las migraciones la conexión directa (5432).
 - El plan gratuito no ofrece backups automáticos ni PITR. Producción requiere plan Pro o
   `pg_dump` programado con prueba de restauración.
 - Las pruebas de integración usan un esquema `test` dedicado para no truncar datos de desarrollo.

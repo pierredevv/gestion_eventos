@@ -1,5 +1,8 @@
 import { createParamDecorator, type ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import type { AuthenticatedRequest, AuthenticatedUser } from '../../../common/http/authenticated-request';
+import type {
+  AuthenticatedRequest,
+  AuthenticatedUser,
+} from '../../../common/http/authenticated-request';
 
 /**
  * Injects the authenticated user, or one of its properties:

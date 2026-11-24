@@ -102,12 +102,7 @@ export class AdminEventsController {
     @Req() request: Request,
   ): Promise<{ ticketType: TicketTypeView }> {
     return {
-      ticketType: await this.events.createTicketType(
-        id,
-        dto,
-        userId,
-        getRequestContext(request),
-      ),
+      ticketType: await this.events.createTicketType(id, dto, userId, getRequestContext(request)),
     };
   }
 

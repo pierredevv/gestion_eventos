@@ -93,7 +93,10 @@ export class PaymentsService {
     const extension = this.assertReceipt(file);
     const payment = await this.prisma.payment.findUniqueOrThrow({ where: { orderId: order.id } });
     if (payment.status === PaymentStatus.APPROVED) {
-      throw new ConflictException({ code: 'PAYMENT_ALREADY_APPROVED', message: 'Payment already approved' });
+      throw new ConflictException({
+        code: 'PAYMENT_ALREADY_APPROVED',
+        message: 'Payment already approved',
+      });
     }
 
     const pending = await this.prisma.paymentSubmission.count({
@@ -284,7 +287,11 @@ export class PaymentsService {
 
       await tx.paymentSubmission.update({
         where: { id: submissionId },
-        data: { reviewStatus: PaymentSubmissionStatus.ACCEPTED, reviewedById: reviewerId, reviewedAt: now },
+        data: {
+          reviewStatus: PaymentSubmissionStatus.ACCEPTED,
+          reviewedById: reviewerId,
+          reviewedAt: now,
+        },
       });
       await tx.paymentSubmission.updateMany({
         where: {
@@ -348,7 +355,11 @@ export class PaymentsService {
       metadata: { orderId: initial.payment.orderId },
     });
 
-    return this.reviewResult(submissionId, PaymentStatus.APPROVED, PaymentSubmissionStatus.ACCEPTED);
+    return this.reviewResult(
+      submissionId,
+      PaymentStatus.APPROVED,
+      PaymentSubmissionStatus.ACCEPTED,
+    );
   }
 
   /**
@@ -466,12 +477,19 @@ export class PaymentsService {
       metadata: { reason: notes },
     });
 
-    return this.reviewResult(submissionId, PaymentStatus.REJECTED, PaymentSubmissionStatus.REJECTED);
+    return this.reviewResult(
+      submissionId,
+      PaymentStatus.REJECTED,
+      PaymentSubmissionStatus.REJECTED,
+    );
   }
 
   private assertReceipt(file: UploadedReceipt | undefined): string {
     if (!file) {
-      throw new BadRequestException({ code: 'RECEIPT_REQUIRED', message: 'A receipt file is required' });
+      throw new BadRequestException({
+        code: 'RECEIPT_REQUIRED',
+        message: 'A receipt file is required',
+      });
     }
     const extension = ALLOWED_RECEIPT_TYPES[file.mimetype];
     if (!extension) {
@@ -501,7 +519,9 @@ export class PaymentsService {
       return buffer.subarray(0, 5).toString('latin1') === '%PDF-';
     }
     if (extension === 'png') {
-      return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+      return buffer
+        .subarray(0, 8)
+        .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
     }
     return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
   }
@@ -520,10 +540,7 @@ export class PaymentsService {
     return submission;
   }
 
-  private async lockPayment(
-    tx: Prisma.TransactionClient,
-    paymentId: string,
-  ): Promise<void> {
+  private async lockPayment(tx: Prisma.TransactionClient, paymentId: string): Promise<void> {
     const rows = await tx.$queryRaw<Array<{ id: string }>>`
       SELECT id FROM payments WHERE id = ${paymentId}::uuid FOR UPDATE
     `;
@@ -543,7 +560,10 @@ export class PaymentsService {
         message: 'This receipt has already been reviewed',
       });
     }
-    if (paymentStatus !== PaymentStatus.UNDER_REVIEW || orderStatus !== OrderStatus.PENDING_REVIEW) {
+    if (
+      paymentStatus !== PaymentStatus.UNDER_REVIEW ||
+      orderStatus !== OrderStatus.PENDING_REVIEW
+    ) {
       throw new ConflictException({
         code: 'PAYMENT_NOT_UNDER_REVIEW',
         message: 'This payment is not waiting for review',

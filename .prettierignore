@@ -4,3 +4,7 @@ dist
 coverage
 pnpm-lock.yaml
 prisma/migrations
+
+# Generated automatically; editing them is overwritten on the next build/generation
+apps/web/next-env.d.ts
+packages/contracts/src/generated/api.d.ts

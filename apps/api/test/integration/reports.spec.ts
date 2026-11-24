@@ -351,10 +351,7 @@ describeWithDatabase('admin reports', () => {
     expect(empty.body.totals.orders).toBe(0);
 
     const past = new Date(Date.now() - 86_400_000).toISOString();
-    const before = await agent
-      .get('/api/v1/admin/reports/sales')
-      .query({ to: past })
-      .expect(200);
+    const before = await agent.get('/api/v1/admin/reports/sales').query({ to: past }).expect(200);
     expect(before.body.totals.orders).toBe(0);
 
     const invalid = await agent
@@ -397,9 +394,7 @@ describeWithDatabase('admin reports', () => {
   });
 
   it('enforces roles and validates the event identifier', async () => {
-    await request(app.getHttpServer())
-      .get('/api/v1/admin/reports/sales')
-      .expect(401);
+    await request(app.getHttpServer()).get('/api/v1/admin/reports/sales').expect(401);
 
     const reviewer = await login(REVIEWER_EMAIL, REVIEWER_PASSWORD);
     await reviewer.agent.get('/api/v1/admin/reports/sales').expect(403);

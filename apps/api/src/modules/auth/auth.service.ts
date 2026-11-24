@@ -12,7 +12,12 @@ import type { AppEnv } from '../../common/config/env';
 import { EmailService } from '../../common/email/email.service';
 import type { RequestContext } from '../../common/http/request-context';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { checkPasswordPolicy, hashPassword, verifyAgainstDummyHash, verifyPassword } from '../../common/security/password';
+import {
+  checkPasswordPolicy,
+  hashPassword,
+  verifyAgainstDummyHash,
+  verifyPassword,
+} from '../../common/security/password';
 import { generateOpaqueToken, hashToken } from '../../common/security/tokens';
 import type { ChangePasswordDto } from './dto/change-password.dto';
 import type { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -45,7 +50,10 @@ export class AuthService {
     private readonly config: ConfigService<AppEnv, true>,
   ) {}
 
-  async login(dto: LoginDto, context: RequestContext): Promise<IssuedSession & { user: AuthUserView }> {
+  async login(
+    dto: LoginDto,
+    context: RequestContext,
+  ): Promise<IssuedSession & { user: AuthUserView }> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
       include: { roles: { include: { role: true } } },
@@ -204,10 +212,7 @@ export class AuthService {
     });
   }
 
-  async resetPassword(
-    dto: ResetPasswordDto,
-    context: RequestContext,
-  ): Promise<void> {
+  async resetPassword(dto: ResetPasswordDto, context: RequestContext): Promise<void> {
     const record = await this.prisma.verificationToken.findUnique({
       where: { tokenHash: hashToken(dto.token) },
     });

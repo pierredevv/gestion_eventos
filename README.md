@@ -60,9 +60,11 @@ Reglas importantes con Supabase:
 3. `SUPABASE_SERVICE_ROLE_KEY` nunca se expone al navegador ni se prefija con `NEXT_PUBLIC_`.
 4. Prisma se conecta por TCP con el rol de base de datos. La autorización vive en NestJS y no
    depende de RLS.
-5. La migración inicial revoca los privilegios de `anon` y `authenticated` sobre `public`, y
-   Supabase habilita RLS sin políticas en cada tabla nueva. La Data API no puede leer ni escribir
-   nada aunque la clave publicable sea pública. No vuelvas a otorgar esos privilegios.
+5. La migración inicial revoca los privilegios de `anon` y `authenticated` sobre `public`, pero no
+   ejecuta `ENABLE ROW LEVEL SECURITY`: Supabase habilita RLS sin políticas en cada tabla nueva
+   mediante su event trigger `ensure_rls`. La Data API no puede leer ni escribir nada aunque la
+   clave publicable sea pública. No vuelvas a otorgar esos privilegios. Si el esquema se recrea
+   fuera de Supabase, habilita RLS explícitamente.
 6. El rol de conexión debe tener `BYPASSRLS` (el rol `postgres` lo tiene). Un rol dedicado sin
    `BYPASSRLS` requiere políticas explícitas.
 

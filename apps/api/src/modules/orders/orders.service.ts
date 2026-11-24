@@ -45,7 +45,10 @@ function orderCode(): string {
     String(date.getUTCMonth() + 1).padStart(2, '0'),
     String(date.getUTCDate()).padStart(2, '0'),
   ].join('');
-  const random = generateOpaqueToken(5).replace(/[^A-Za-z0-9]/g, 'A').slice(0, 6).toUpperCase();
+  const random = generateOpaqueToken(5)
+    .replace(/[^A-Za-z0-9]/g, 'A')
+    .slice(0, 6)
+    .toUpperCase();
   return `ORD-${stamp}-${random}`.slice(0, 20);
 }
 
@@ -85,7 +88,10 @@ export class OrdersService {
 
     const event = await this.prisma.event.findUnique({ where: { id: dto.eventId } });
     if (!event || event.status !== 'PUBLISHED') {
-      throw new NotFoundException({ code: 'EVENT_NOT_AVAILABLE', message: 'Event is not available' });
+      throw new NotFoundException({
+        code: 'EVENT_NOT_AVAILABLE',
+        message: 'Event is not available',
+      });
     }
 
     const ticketTypeIds = [...new Set(dto.items.map((item) => item.ticketTypeId))];
@@ -101,7 +107,11 @@ export class OrdersService {
           message: 'Ticket type not found in this event',
         });
       }
-      if (!ticketType.isActive || item.quantity < ticketType.minPerOrder || item.quantity > ticketType.maxPerOrder) {
+      if (
+        !ticketType.isActive ||
+        item.quantity < ticketType.minPerOrder ||
+        item.quantity > ticketType.maxPerOrder
+      ) {
         throw new BadRequestException({
           code: 'INVALID_QUANTITY',
           message: `Quantity must be between ${ticketType.minPerOrder} and ${ticketType.maxPerOrder} for ${ticketType.name}`,
@@ -278,17 +288,19 @@ export class OrdersService {
 
     const isBuyer = Boolean(options.userId && order.buyerId === options.userId);
     const isTokenValid = options.accessToken
-      ? await this.prisma.orderAccessToken.findFirst({
-          where: {
-            orderId: order.id,
-            scope: AccessTokenScope.ORDER,
-            tokenHash: hashToken(options.accessToken),
-            usedAt: null,
-            revokedAt: null,
-            expiresAt: { gt: new Date() },
-          },
-          select: { id: true },
-        }).then((token) => Boolean(token))
+      ? await this.prisma.orderAccessToken
+          .findFirst({
+            where: {
+              orderId: order.id,
+              scope: AccessTokenScope.ORDER,
+              tokenHash: hashToken(options.accessToken),
+              usedAt: null,
+              revokedAt: null,
+              expiresAt: { gt: new Date() },
+            },
+            select: { id: true },
+          })
+          .then((token) => Boolean(token))
       : false;
 
     // Every order needs either a matching buyer session or the secret link.
@@ -317,7 +329,10 @@ export class OrdersService {
     context: RequestContext,
   ): Promise<OrderView> {
     const current = await this.findByCode(orderCode, { userId, accessToken });
-    if (current.status !== OrderStatus.PENDING_PAYMENT && current.status !== OrderStatus.PENDING_REVIEW) {
+    if (
+      current.status !== OrderStatus.PENDING_PAYMENT &&
+      current.status !== OrderStatus.PENDING_REVIEW
+    ) {
       throw new BadRequestException({
         code: 'ORDER_INVALID_STATE',
         message: 'This order can no longer be cancelled',
@@ -326,7 +341,10 @@ export class OrdersService {
 
     const order = await this.prisma.$transaction(async (tx) => {
       const reservations = await tx.inventoryReservation.findMany({
-        where: { orderId: current.id, status: { in: [ReservationStatus.ACTIVE, ReservationStatus.HELD_FOR_REVIEW] } },
+        where: {
+          orderId: current.id,
+          status: { in: [ReservationStatus.ACTIVE, ReservationStatus.HELD_FOR_REVIEW] },
+        },
       });
       for (const reservation of reservations) {
         const released = await releaseStock(tx, reservation.ticketTypeId, reservation.quantity);
@@ -390,7 +408,11 @@ export class OrdersService {
         })),
       })),
       payment: order.payment
-        ? { id: order.payment.id, status: order.payment.status, amount: money(order.payment.amount) }
+        ? {
+            id: order.payment.id,
+            status: order.payment.status,
+            amount: money(order.payment.amount),
+          }
         : null,
     };
   }

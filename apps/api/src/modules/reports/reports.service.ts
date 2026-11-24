@@ -59,10 +59,7 @@ export class ReportsService {
       ...(query.eventId ? { eventId: query.eventId } : {}),
       ...(range
         ? {
-            OR: [
-              { confirmedAt: range },
-              { confirmedAt: null, createdAt: range },
-            ],
+            OR: [{ confirmedAt: range }, { confirmedAt: null, createdAt: range }],
           }
         : {}),
     };
@@ -77,7 +74,9 @@ export class ReportsService {
     });
 
     const totals = newBucket();
-    const statusCounts = new Map<OrderStatus, number>(Object.values(OrderStatus).map((s) => [s, 0]));
+    const statusCounts = new Map<OrderStatus, number>(
+      Object.values(OrderStatus).map((s) => [s, 0]),
+    );
     const events = new Map<string, { title: string; startDate: string; bucket: Bucket }>();
     const ticketTypes = new Map<string, SalesByTicketType & { gross: Prisma.Decimal }>();
 
@@ -146,9 +145,7 @@ export class ReportsService {
         grossRevenue: totals.gross.toFixed(2),
         discounts: totals.discounts.toFixed(2),
         netRevenue: totals.net.toFixed(2),
-        averageOrderValue: totals.orders
-          ? totals.net.div(totals.orders).toFixed(2)
-          : '0.00',
+        averageOrderValue: totals.orders ? totals.net.div(totals.orders).toFixed(2) : '0.00',
       },
       byStatus: [...statusCounts].map(([status, count]) => ({ status, orders: count })),
       byEvent,
@@ -227,9 +224,7 @@ export class ReportsService {
       ticketsSold: sold.length,
       checkedIn: checkedIn.length,
       noShows: sold.length - checkedIn.length,
-      attendanceRate: sold.length
-        ? ((checkedIn.length / sold.length) * 100).toFixed(1)
-        : '0.0',
+      attendanceRate: sold.length ? ((checkedIn.length / sold.length) * 100).toFixed(1) : '0.0',
       byTicketType: [...byType.values()].sort((a, b) =>
         a.ticketTypeName.localeCompare(b.ticketTypeName),
       ),

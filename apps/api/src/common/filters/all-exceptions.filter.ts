@@ -26,9 +26,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = http.getRequest<Request>();
 
     const isHttpException = exception instanceof HttpException;
-    const statusCode = isHttpException
-      ? exception.getStatus()
-      : HttpStatus.INTERNAL_SERVER_ERROR;
+    const statusCode = isHttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
     let message: string | string[] = 'Internal server error';
     let error = 'Internal Server Error';
@@ -52,7 +50,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
         }
       }
     } else {
-      const stack = exception instanceof Error ? (exception.stack ?? exception.message) : String(exception);
+      const stack =
+        exception instanceof Error ? (exception.stack ?? exception.message) : String(exception);
       this.logger.error('Unhandled exception', stack);
     }
 

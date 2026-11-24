@@ -157,7 +157,10 @@ describeWithDatabase('database invariants', () => {
     const { eventId } = await createEvent();
     const ticketType = await createTicketType(eventId, { capacity: 5 });
 
-    const results = await Promise.all([reserveStock(ticketType.id, 4), reserveStock(ticketType.id, 4)]);
+    const results = await Promise.all([
+      reserveStock(ticketType.id, 4),
+      reserveStock(ticketType.id, 4),
+    ]);
 
     expect(results.filter((affected) => affected === 1)).toHaveLength(1);
 

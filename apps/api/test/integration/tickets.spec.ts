@@ -58,7 +58,12 @@ class InMemoryStorage extends StorageService {
 
 class RecordingEmail extends EmailService {
   readonly sent: EmailMessage[] = [];
+  readonly failDeliveryFor: string[] = [];
+
   override async send(message: EmailMessage): Promise<void> {
+    if (this.failDeliveryFor.includes(message.to) && message.subject.includes('Tus entradas')) {
+      throw new Error('Simulated ticket-delivery outage');
+    }
     this.sent.push(message);
   }
 }
@@ -115,6 +120,7 @@ describeWithDatabase('tickets and notifications', () => {
 
   beforeEach(async () => {
     email.sent.length = 0;
+    email.failDeliveryFor.length = 0;
     await prisma.$executeRawUnsafe(
       `TRUNCATE TABLE ${TABLES.map((table) => `"${table}"`).join(', ')} RESTART IDENTITY CASCADE`,
     );
@@ -183,14 +189,18 @@ describeWithDatabase('tickets and notifications', () => {
     ticketTypeId = ticketType.id;
   });
 
-  async function confirmOrder(quantity = 2, key = 'ticket-order-001') {
+  async function confirmOrder(
+    quantity = 2,
+    key = 'ticket-order-001',
+    buyerEmail = 'luis@example.com',
+  ) {
     const created = await request(app.getHttpServer())
       .post('/api/v1/orders')
       .send({
         eventId,
         idempotencyKey: key,
         buyerName: 'Luis Gomez',
-        buyerEmail: 'luis@example.com',
+        buyerEmail,
         buyerPhone: '+59170000002',
         items: [
           {
@@ -198,7 +208,7 @@ describeWithDatabase('tickets and notifications', () => {
             quantity,
             attendees: Array.from({ length: quantity }, (_, index) => ({
               fullName: `Attendee ${index + 1}`,
-              email: `attendee${index + 1}@example.com`,
+              email: `attendee-${key}-${index + 1}@example.com`,
             })),
           },
         ],
@@ -255,7 +265,10 @@ describeWithDatabase('tickets and notifications', () => {
       .query({ token })
       .expect(200);
     expect(portal.body.tickets).toHaveLength(2);
-    for (const ticket of portal.body.tickets as Array<{ qrPayload: string; attendeeName: string }>) {
+    for (const ticket of portal.body.tickets as Array<{
+      qrPayload: string;
+      attendeeName: string;
+    }>) {
       expect(ticket.qrPayload).toMatch(/^EVT1:[A-Za-z0-9_-]{43}$/);
       expect(ticket.qrPayload).not.toContain(ticket.attendeeName);
     }
@@ -287,6 +300,65 @@ describeWithDatabase('tickets and notifications', () => {
     await app.get(NotificationWorkerService).run();
     const tickets = await prisma.ticket.count({ where: { orderId: order.orderId } });
     expect(tickets).toBe(1);
-    expect(email.sent.filter((message) => message.subject.includes('Tus entradas'))).toHaveLength(1);
+    expect(email.sent.filter((message) => message.subject.includes('Tus entradas'))).toHaveLength(
+      1,
+    );
+  });
+
+  it('keeps deliveries independent and retries a failed email without duplicating tickets', async () => {
+    const failing = await confirmOrder(1, 'ticket-order-email-a', 'fail-buyer@example.com');
+    const healthy = await confirmOrder(1, 'ticket-order-email-b', 'ok-buyer@example.com');
+    email.failDeliveryFor.push('fail-buyer@example.com');
+
+    const worker = app.get(NotificationWorkerService);
+    expect(await worker.run()).toBeGreaterThan(0);
+
+    // The healthy recipient is unaffected by the other recipient's failure.
+    expect(
+      email.sent.filter(
+        (message) =>
+          message.to === 'ok-buyer@example.com' && message.subject.includes('Tus entradas'),
+      ),
+    ).toHaveLength(1);
+    expect(
+      email.sent.some(
+        (message) =>
+          message.to === 'fail-buyer@example.com' && message.subject.includes('Tus entradas'),
+      ),
+    ).toBe(false);
+
+    // Approval already persisted the order and enqueued delivery; tickets exist
+    // even though the email provider failed.
+    expect(await prisma.ticket.count({ where: { orderId: failing.orderId } })).toBe(1);
+    expect(await prisma.ticket.count({ where: { orderId: healthy.orderId } })).toBe(1);
+
+    const failedJob = await prisma.notificationJob.findFirstOrThrow({
+      where: { type: 'TICKET_DELIVERY', recipient: 'fail-buyer@example.com' },
+    });
+    expect(failedJob.status).toBe('PENDING');
+    expect(failedJob.attempts).toBe(1);
+    expect(failedJob.lastError).toContain('Simulated ticket-delivery outage');
+
+    // A later retry sends the same portal link and must not reissue tickets.
+    email.failDeliveryFor.length = 0;
+    await prisma.notificationJob.update({
+      where: { id: failedJob.id },
+      data: { nextAttemptAt: new Date(0) },
+    });
+    await worker.run();
+
+    const retried = await prisma.notificationJob.findUniqueOrThrow({
+      where: { id: failedJob.id },
+    });
+    expect(retried.status).toBe('SENT');
+    expect(await prisma.ticket.count({ where: { orderId: failing.orderId } })).toBe(1);
+    const deliveries = email.sent.filter(
+      (message) =>
+        message.to === 'fail-buyer@example.com' && message.subject.includes('Tus entradas'),
+    );
+    expect(deliveries).toHaveLength(1);
+    const accessToken = (failedJob.payload as Record<string, unknown>).accessToken;
+    expect(typeof accessToken).toBe('string');
+    expect(deliveries[0]?.text).toContain(`token=${String(accessToken)}`);
   });
 });

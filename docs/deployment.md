@@ -21,7 +21,7 @@ proyecto nuevo; **nunca reutilices la base de desarrollo**.
    ```
 
 5. Verifica la base con `pnpm --filter @eventos/api db:check` apuntando `.env` a producción antes de desplegar.
-   La migración inicial ya revoca permisos a `anon`/`authenticated` y habilita RLS sin políticas.
+   La migración inicial revoca permisos a `anon`/`authenticated`, pero no ejecuta `ENABLE ROW LEVEL SECURITY`. En Supabase, el event trigger `ensure_rls` habilita RLS sin políticas en cada tabla nueva de `public`. Si el esquema se recrea fuera de Supabase, hay que habilitar RLS explícitamente.
 
 ## 2. Correo
 

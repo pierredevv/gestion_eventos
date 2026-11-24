@@ -27,7 +27,9 @@ const TOKEN_PREFIX = 'EVT1:';
 const TICKET_CODE_ATTEMPTS = 5;
 
 function ticketCode(): string {
-  const random = randomBytes(5).toString('base64url').replace(/[^A-Za-z0-9]/g, 'A');
+  const random = randomBytes(5)
+    .toString('base64url')
+    .replace(/[^A-Za-z0-9]/g, 'A');
   return `TKT-${random.slice(0, 6).toUpperCase()}`.slice(0, 24);
 }
 
@@ -169,7 +171,10 @@ export class TicketsService {
       select: { orderId: true },
     });
     if (!access) {
-      throw new NotFoundException({ code: 'TICKET_LINK_INVALID', message: 'Ticket link is invalid or expired' });
+      throw new NotFoundException({
+        code: 'TICKET_LINK_INVALID',
+        message: 'Ticket link is invalid or expired',
+      });
     }
 
     const tickets = await this.prisma.ticket.findMany({
@@ -178,12 +183,18 @@ export class TicketsService {
       orderBy: { createdAt: 'asc' },
     });
     if (tickets.length === 0) {
-      throw new NotFoundException({ code: 'TICKETS_NOT_READY', message: 'Tickets are not ready yet' });
+      throw new NotFoundException({
+        code: 'TICKETS_NOT_READY',
+        message: 'Tickets are not ready yet',
+      });
     }
 
     const first = tickets[0];
     if (!first) {
-      throw new NotFoundException({ code: 'TICKETS_NOT_READY', message: 'Tickets are not ready yet' });
+      throw new NotFoundException({
+        code: 'TICKETS_NOT_READY',
+        message: 'Tickets are not ready yet',
+      });
     }
     const { order } = first;
     return {

@@ -39,7 +39,9 @@ export class OrdersController {
     @Query('token') token: string | undefined,
     @OptionalCurrentUser() user: AuthenticatedUser | undefined,
   ): Promise<{ order: OrderView }> {
-    return { order: await this.orders.findByCode(orderCode, { userId: user?.id, accessToken: token }) };
+    return {
+      order: await this.orders.findByCode(orderCode, { userId: user?.id, accessToken: token }),
+    };
   }
 
   @Public()

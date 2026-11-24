@@ -12,6 +12,7 @@
     "test": "node --experimental-vm-modules --env-file=../../.env ./node_modules/jest/bin/jest.js --passWithNoTests",
     "test:watch": "node --experimental-vm-modules --env-file=../../.env ./node_modules/jest/bin/jest.js --watch",
     "test:cov": "node --experimental-vm-modules --env-file=../../.env ./node_modules/jest/bin/jest.js --coverage --passWithNoTests",
+    "e2e:seed": "node --env-file=../../.env --import tsx test/e2e/seed.ts",
     "prisma:generate": "dotenv -e ../../.env -- prisma generate",
     "prisma:validate": "dotenv -e ../../.env -- prisma validate",
     "prisma:format": "dotenv -e ../../.env -- prisma format",

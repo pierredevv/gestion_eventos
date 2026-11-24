@@ -218,7 +218,12 @@ describeWithDatabase('payments and manual review', () => {
   function submitReceipt(
     code: string,
     token: string,
-    options: { declaredAmount?: string; paymentReference?: string; file?: Buffer; mime?: string } = {},
+    options: {
+      declaredAmount?: string;
+      paymentReference?: string;
+      file?: Buffer;
+      mime?: string;
+    } = {},
   ) {
     const req = request(app.getHttpServer())
       .post(`/api/v1/orders/${code}/payment-submissions`)
@@ -271,7 +276,9 @@ describeWithDatabase('payments and manual review', () => {
     expect(ticketType.reservedQuantity).toBe(0);
     expect(ticketType.soldQuantity).toBe(2);
 
-    const reservations = await prisma.inventoryReservation.findMany({ where: { orderId: order.id } });
+    const reservations = await prisma.inventoryReservation.findMany({
+      where: { orderId: order.id },
+    });
     expect(reservations.every((reservation) => reservation.status === 'CONSUMED')).toBe(true);
 
     const jobs = await prisma.notificationJob.findMany({
@@ -282,7 +289,9 @@ describeWithDatabase('payments and manual review', () => {
 
   it('prevents double approval with a conflict', async () => {
     const order = await createOrder(1, 'payment-order-double');
-    const submitted = await submitReceipt(order.code, order.token, { declaredAmount: '100' }).expect(201);
+    const submitted = await submitReceipt(order.code, order.token, {
+      declaredAmount: '100',
+    }).expect(201);
     const reviewer = await signInReviewer();
     const submissionId = submitted.body.submission.id as string;
 

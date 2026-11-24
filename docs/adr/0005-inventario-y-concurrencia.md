@@ -28,9 +28,10 @@ Dos fuentes de verdad (`ticket_types.sold_quantity/reserved_quantity` e
   ```
 
   Cero filas significa stock insuficiente y toda la orden se revierte.
+
 - Los tipos se bloquean en orden determinista (`ORDER BY id`) para evitar deadlocks.
 - PostgreSQL impone `CHECK (reserved_quantity >= 0 AND sold_quantity >= 0 AND
-  reserved_quantity + sold_quantity <= capacity)` como última línea de defensa.
+reserved_quantity + sold_quantity <= capacity)` como última línea de defensa.
 - La confirmación mueve cantidades en **un solo UPDATE** (`sold += q`, `reserved -= q`) para no
   violar el CHECK de forma intermedia.
 - Un job libera reservas con `FOR UPDATE SKIP LOCKED` y solo toca órdenes cuyo estado sigue siendo
