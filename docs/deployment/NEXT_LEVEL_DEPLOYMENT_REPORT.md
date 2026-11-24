@@ -3,13 +3,13 @@
 **Fecha:** 2026-11-24  
 **Repositorio:** https://github.com/pierredevv/gestion_eventos  
 **Rama:** `master`  
-**Commit de código desplegado:** `4fb84b6`
+**Commit de código desplegado:** `42bb858`
 
 **Commit de la API desplegada en Render:** `4fb84b6` (deploy `dep-dc2uqu3l550s73c9rm60`, estado `live`)
 
-**Commit del frontend desplegado en Vercel:** `4fb84b6` (deploy `dpl_9iMKRvZmpDYhmesjk7CL3dUK8KLG`, `READY`)
+**Commit del frontend desplegado en Vercel:** `42bb858` (deploy `dpl_6fqqvLqKSpPkN9drmQGKwgJFcE6e`, `READY`)
 
-**Dictamen actualizado:** **READY para administración.** Web y API operativas, conexión a PostgreSQL funcionando, catálogo `/events?limit=100` → 200, panel administrativo accesible y evento **NEXT LEVEL creado como DRAFT**, sin publicar y sin ventas habilitadas.
+**Dictamen actualizado:** **READY para administración.** Web y API operativas, conexión a PostgreSQL funcionando, catálogo `/events?limit=100` → 200, panel administrativo accesible, lugar/dirección y QR bancario configurados, y evento **NEXT LEVEL creado como DRAFT**, sin publicar y sin ventas habilitadas.
 
 > **Actualización 2026-11-24 19:23 UTC:** el bloqueo de conexión a PostgreSQL quedó resuelto mediante
 > el session pooler IPv4 de Supabase. Ver
@@ -17,10 +17,15 @@
 >
 > **Actualización 2026-11-24 20:07 UTC:** se corrigió el `import type` de `ListEventsDto` que causaba el
 > 400 del catálogo, se publicaron los cambios para `location`/`address` opcionales y se creó NEXT LEVEL
-> desde la API administrativa con sesión real. Las secciones técnicas posteriores conservan el estado
-> original de la investigación; esta nota y la sección 14 reflejan el estado final verificado.
+> desde la API administrativa con sesión real.
+>
+> **Actualización 2026-11-24 20:17 UTC:** se cargaron el lugar y la dirección confirmados mediante la
+> API administrativa, se publicó el QR real en `apps/web/public/payment-qr.jpeg`, se configuró
+> `NEXT_PUBLIC_PAYMENT_QR_URL` en Vercel y se redesplegó la web. Las secciones técnicas posteriores
+> conservan el estado original de la investigación; esta nota y las secciones 11, 13, 14 y 15 reflejan
+> el estado final verificado.
 
-> Clasificación usada: **PASS** = verificado con evidencia; **FAIL** = verificado y negativo; **BLOCKED** = impedimento real que requiere acción/autorizaciónn; **NOT TESTED** = no ejecutado.
+> Clasificación usada: **PASS** = verificado con evidencia; **FAIL** = verificado y negativo; **BLOCKED** = impedimento real que requiere acción/autorización; **NOT TESTED** = no ejecutado.
 
 ---
 
@@ -211,20 +216,21 @@ Esta evidencia es **local y aislada**; no demuestra operación en producción.
 
 Registro creado y verificado:
 
-| Campo                  | Valor persistido                                                                                          |
-| ---------------------- | --------------------------------------------------------------------------------------------------------- |
-| ID                     | `ee88d1db-8d78-44dc-bae0-dda9456362d6`                                                                    |
-| Slug                   | `next-level`                                                                                              |
-| Título                 | `NEXT LEVEL`                                                                                              |
-| Estado                 | `DRAFT` (`publishedAt = null`)                                                                            |
-| `location` / `address` | `null` / `null`; la UI muestra “Por definir”                                                              |
-| Evento                 | `2026-11-27T10:00:00-04:00` → `2026-11-27T12:30:00-04:00`                                                 |
-| Inscripción            | `2026-11-24T16:30:00-04:00` → `2026-11-27T10:00:00-04:00`                                                 |
-| Entrada `General`      | 50.00 BOB, cupo 120, ventas `2026-11-24T16:30:00-04:00` → `2026-11-27T10:00:00-04:00`, `isActive = false` |
+| Campo                  | Valor persistido                                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ID                     | `ee88d1db-8d78-44dc-bae0-dda9456362d6`                                                                                                                        |
+| Slug                   | `next-level`                                                                                                                                                  |
+| Título                 | `NEXT LEVEL`                                                                                                                                                  |
+| Estado                 | `DRAFT` (`publishedAt = null`)                                                                                                                                |
+| `location` / `address` | `Auditorio del Instituto para la Excelencia en Negocios del Gas - INEGAS` / `Inegas, Av. Busch, Santa Cruz de la Sierra, Bolivia, Departamento de Santa Cruz` |
+| Evento                 | `2026-11-27T10:00:00-04:00` → `2026-11-27T12:30:00-04:00`                                                                                                     |
+| Inscripción            | `2026-11-24T16:30:00-04:00` → `2026-11-27T10:00:00-04:00`                                                                                                     |
+| Entrada `General`      | 50.00 BOB, cupo 120, ventas `2026-11-24T16:30:00-04:00` → `2026-11-27T10:00:00-04:00`, `isActive = false`                                                     |
 
 El eslogan, la categoría, el organizador, el contacto y el programa se conservaron dentro de
-`description`, usando solo campos existentes. No se crearon campos nuevos, no se publicó el evento,
-no se habilitaron ventas y no se cargó ningún logo porque no se entregó el archivo.
+`description`, usando solo campos existentes. El lugar y la dirección confirmados se cargaron después
+mediante `PATCH /api/v1/admin/events/{id}` y quedaron persistidos. No se crearon campos nuevos, no se
+publicó el evento, no se habilitaron ventas y no se cargó ningún logo porque no se entregó el archivo.
 
 Estado original de la investigación (histórico):
 
@@ -272,22 +278,15 @@ Impedimentos exactos:
 
 ## 13. Procedimiento para cargar el QR bancario
 
-Estado actual: **BLOCKED — no cargado**. No se usó ningún QR ficticio.
+Estado actual: **CONFIGURADO**. No se usó ningún QR ficticio.
 
 El sistema trata el QR como **configuración global**, no por evento:
 
-1. Obtener el archivo real del QR de la organización (PNG/JPG/SVG/webp; el frontend no valida formato, solo renderiza una URL de imagen; recomendable HTTPS).
-2. Publicar ese archivo en una URL pública y estable. No se hizo: los buckets de Supabase existentes son privados y no se autorizó crear un bucket público ni modificar `public/`.
-3. En Vercel → Proyecto `gestion-eventos` → Settings → Environment Variables, configurar:
-
-   ```text
-   NEXT_PUBLIC_PAYMENT_QR_URL=https://<url-publica-del-archivo-qr>
-   ```
-
-   en `production` y `preview`.
-
-4. Redesplegar la web: `NEXT_PUBLIC_*` se sustituye en tiempo de build.
-5. Verificar en una orden con estado `PENDING_PAYMENT` que aparece la imagen con alt “QR bancario estático proporcionado por la organización”.
+1. El usuario entregó el archivo real: `/home/pierre/Descargas/WhatsApp Image 2026-11-24 at 4.33.37 PM.jpeg` (JPEG, 824x773, 155 KB).
+2. Se publicó en `apps/web/public/payment-qr.jpeg` (commit `42bb858`) y quedó accesible en `https://gestion-eventos-pi.vercel.app/payment-qr.jpeg` → `200`, `image/jpeg`, `158711` bytes. No se creó un bucket público porque `SUPABASE_SERVICE_ROLE_KEY` está vacía en el entorno local y los buckets existentes son privados.
+3. Se configuró en Vercel, proyecto `gestion-eventos`, variable `NEXT_PUBLIC_PAYMENT_QR_URL` con ese valor, en `production` y `preview`.
+4. Se redesplegó la web: deploy `dpl_6fqqvLqKSpPkN9drmQGKwgJFcE6e`, `READY`, commit `42bb858`, alias `gestion-eventos-pi.vercel.app`. `NEXT_PUBLIC_*` se sustituye en tiempo de build.
+5. Falta verificar en una orden con estado `PENDING_PAYMENT` que aparece la imagen con alt “QR bancario estático proporcionado por la organización”. Eso requiere habilitar ventas, lo cual sigue pendiente de autorización.
 6. Solo después de comprobar el flujo de pago con el QR real, publicar el evento y abrir ventas.
 
 Observación: no se habilitaron ventas pagadas y no se ejecutaron pagos reales.
@@ -309,12 +308,12 @@ Observación: no se habilitaron ventas pagadas y no se ejecutaron pagos reales.
 | Correo real                  | NOT TESTED    | Sin envío                                                             |
 | Storage (existencia)         | PASS          | Buckets privados creados                                              |
 | Storage (subida real)        | NOT TESTED    | Sin comprobante real                                                  |
-| Compra real                  | BLOCKED       | DB de aplicación caída; sin QR                                        |
+| Compra real                  | BLOCKED       | Sin ventas habilitadas; QR ya configurado                             |
 | Aprobación de pagos          | BLOCKED       | Sin comprobante real                                                  |
 | Emisión de tickets           | BLOCKED       | Sin orden confirmada real                                             |
 | Check-in real                | BLOCKED       | Sin ticket real                                                       |
-| Evento NEXT LEVEL            | PASS          | Creado como DRAFT con entrada General; sin publicar ni vender         |
-| QR bancario                  | BLOCKED       | Archivo no entregado                                                  |
+| Evento NEXT LEVEL            | PASS          | Creado como DRAFT con entrada General; lugar/dirección cargados       |
+| QR bancario                  | PASS          | Archivo real publicado y variable de entorno configurada              |
 | Railway                      | NOT TESTED    | No utilizado                                                          |
 | **Dictamen global**          | **READY**     | Administración operativa; publicación y ventas requieren autorización |
 
@@ -322,15 +321,15 @@ Observación: no se habilitaron ventas pagadas y no se ejecutaron pagos reales.
 
 ## 15. Respuestas directas
 
-1. **¿El sistema está desplegado?** Sí. Web `READY` en Vercel y API `live` en Render, ambas en `4fb84b6`. El panel administrativo es utilizable.
+1. **¿El sistema está desplegado?** Sí. API `live` en Render en `4fb84b6`; web `READY` en Vercel en `42bb858` (deploy `dpl_6fqqvLqKSpPkN9drmQGKwgJFcE6e`). El panel administrativo es utilizable.
 2. **¿Cuál es la URL pública?** https://gestion-eventos-pi.vercel.app
 3. **¿El frontend se comunica correctamente con el backend?** Sí. `/health` 200, `/health/ready` 200 y `/events?limit=100` 200; el error 400 por `limit` quedó corregido.
 4. **¿La base de datos funciona?** Sí. La API usa el session pooler IPv4; `DIRECT_URL` queda reservado para migraciones desde hosts con IPv6.
 5. **¿Los correos funcionan?** Autenticación SMTP verificada; envío real **no probado**.
 6. **¿El almacenamiento funciona?** Buckets privados creados; subida real **no probada**.
-7. **¿Se puede realizar una compra?** No en producción actual: DB de aplicación caída y QR pendiente. La E2E local en schema `test` sí pasó históricamente.
+7. **¿Se puede realizar una compra?** No todavía: el evento sigue en `DRAFT` y la entrada `General` tiene `isActive = false`. El QR ya está configurado; la E2E local en schema `test` sí pasó históricamente.
 8. **¿Se pueden aprobar pagos?** No con evidencia real; sin comprobantes en producción. La lógica está implementada y probada localmente.
 9. **¿Se generan tickets?** No en producción (0 filas). Localmente se generaron en E2E.
 10. **¿Se pueden validar los QR?** No con tickets reales de producción; localmente el doble scan fue rechazado con `409`.
-11. **¿El evento NEXT LEVEL está creado?** **Sí**, como `DRAFT`, con `location`/`address` vacíos y una entrada `General` de 50 BOB / cupo 120. No está publicado y `isActive = false`.
-12. **¿Qué falta para publicarlo y abrir ventas?** Autorizar la publicación, activar la entrada, completar lugar/dirección cuando se confirmen, entregar el QR real y publicarlo en `NEXT_PUBLIC_PAYMENT_QR_URL`; después verificar compra, comprobante, aprobación, tickets, correo y check-in sin pagos reales. No se agregaron campos nuevos para eslogan, categoría, organizador, contacto, programa ni logo; esa información quedó en `description`.
+11. **¿El evento NEXT LEVEL está creado?** **Sí**, como `DRAFT`, con lugar y dirección confirmados persistidos y una entrada `General` de 50 BOB / cupo 120. No está publicado y `isActive = false`.
+12. **¿Qué falta para publicarlo y abrir ventas?** Solo tu autorización explícita para publicar el evento y activar la entrada `General`. El QR real ya está publicado y configurado en `NEXT_PUBLIC_PAYMENT_QR_URL`, y lugar/dirección ya están cargados. Después habría que verificar compra, comprobante, aprobación, tickets, correo y check-in sin pagos reales. No se agregaron campos nuevos para eslogan, categoría, organizador, contacto, programa ni logo; esa información quedó en `description`.
