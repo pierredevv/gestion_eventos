@@ -34,4 +34,4 @@ pnpm-debug.log*
 .vscode/
 
 # Local storage (development fallback for private files)
-storage/
+/storage/
