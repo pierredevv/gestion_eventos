@@ -82,21 +82,36 @@ export class EmailService {
       host: this.config.get('SMTP_HOST', { infer: true }),
       port: this.config.get('SMTP_PORT', { infer: true }),
       secure: this.config.get('SMTP_SECURE', { infer: true }),
-      connectionTimeout: 5_000,
-      greetingTimeout: 5_000,
-      socketTimeout: 10_000,
+      // Render's egress to the SMTP relay is intermittently slower than a local
+      // IPv4 connection. Short connect/greeting timeouts made otherwise valid
+      // sends fail and left rejection notices stuck as retrying jobs.
+      connectionTimeout: 15_000,
+      greetingTimeout: 15_000,
+      socketTimeout: 30_000,
+      dnsTimeout: 10_000,
       auth: {
         user: this.config.get('SMTP_USER', { infer: true }),
         pass: this.config.get('SMTP_PASSWORD', { infer: true }),
       },
     });
 
-    await this.smtpTransport.sendMail({
-      from: this.from,
-      to: message.to,
-      subject: message.subject,
-      text: message.text,
-      html: message.html,
-    });
+    const startedAt = Date.now();
+    try {
+      await this.smtpTransport.sendMail({
+        from: this.from,
+        to: message.to,
+        subject: message.subject,
+        text: message.text,
+        html: message.html,
+      });
+      this.logger.log(
+        `SMTP accepted message in ${Date.now() - startedAt}ms via ${this.config.get('SMTP_HOST', { infer: true })}:${this.config.get('SMTP_PORT', { infer: true })}`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `SMTP delivery failed after ${Date.now() - startedAt}ms: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
   }
 }
