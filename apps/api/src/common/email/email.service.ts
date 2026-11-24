@@ -34,7 +34,7 @@ export class EmailService {
     this.provider = config.get('EMAIL_PROVIDER', { infer: true });
     this.from = config.get('EMAIL_FROM', { infer: true });
     this.resendApiKey = config.get('RESEND_API_KEY', { infer: true });
-    this.brevoApiKey = config.get('SMTP_PASSWORD', { infer: true });
+    this.brevoApiKey = config.get('BREVO_API_KEY', { infer: true });
   }
 
   async send(message: EmailMessage): Promise<void> {
@@ -86,11 +86,11 @@ export class EmailService {
 
   /**
    * HTTPS fallback: some hosts block outbound SMTP ports, so Brevo's REST API
-   * is used with the same key already configured for the SMTP relay.
+   * is used with a dedicated Brevo API key.
    */
   private async sendWithBrevo(message: EmailMessage): Promise<void> {
     if (!this.brevoApiKey) {
-      throw new Error('SMTP_PASSWORD (Brevo key) is required when EMAIL_PROVIDER=brevo');
+      throw new Error('BREVO_API_KEY is required when EMAIL_PROVIDER=brevo');
     }
 
     const startedAt = Date.now();

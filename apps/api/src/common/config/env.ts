@@ -87,6 +87,7 @@ export const envSchema = z
     EMAIL_PROVIDER: z.enum(['console', 'resend', 'smtp', 'brevo']).default('console'),
     EMAIL_FROM: z.string().min(3).default('no-reply@eventos.local'),
     RESEND_API_KEY: optionalString,
+    BREVO_API_KEY: optionalString,
     SMTP_HOST: optionalString,
     SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
     SMTP_USER: optionalString,
@@ -102,11 +103,11 @@ export const envSchema = z
       });
     }
 
-    if (value.EMAIL_PROVIDER === 'brevo' && !value.SMTP_PASSWORD) {
+    if (value.EMAIL_PROVIDER === 'brevo' && !value.BREVO_API_KEY) {
       ctx.addIssue({
         code: 'custom',
-        path: ['SMTP_PASSWORD'],
-        message: 'SMTP_PASSWORD (Brevo key) is required when EMAIL_PROVIDER=brevo',
+        path: ['BREVO_API_KEY'],
+        message: 'BREVO_API_KEY is required when EMAIL_PROVIDER=brevo',
       });
     }
 
