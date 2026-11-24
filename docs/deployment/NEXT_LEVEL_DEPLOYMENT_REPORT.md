@@ -429,3 +429,38 @@ commit, alias `gestion-eventos-pi.vercel.app`.
 - `pnpm typecheck`, `pnpm build` y 13/13 pruebas focalizadas (storage, payments, orders): PASS.
 - El propio usuario envió además un comprobante real desde su navegador en `ORD-261124-PHTXZW`;
   esa orden quedó en `PENDING_REVIEW` y **no fue aprobada ni cancelada** por esta verificación.
+
+---
+
+## 18. Verificación de correos de rechazo
+
+**Resultado de la revisión:** el flujo de negocio es correcto; la entrega está bloqueada por la red
+saliente de Render, no por el destinatario ni por el motivo.
+
+- `PaymentsService.reject()` crea el job `PAYMENT_REJECTED` con
+  `recipient = order.buyerEmail` y `reason = notes` (commit `b17552e`, sin cambios de negocio).
+- `NotificationWorkerService.deliver()` compone el texto
+  `Tu comprobante fue rechazado. Motivo: <reason>. ...` y usa `job.recipient`.
+- En el rechazo real del usuario (`ORD-261124-PHTXZW`, motivo “Chupapichi, no es un comprobante”),
+  el job `d0f1bc7a…` tiene `recipient = pierreelpro19@gmail.com` y ese motivo en el payload.
+- En dos rechazos controlados creados por API (`ORD-261124-DARIC3` y `ORD-261124-CXIZRE`) se
+  confirmó el mismo destino y el motivo enviado; ambas órdenes se cancelaron después para liberar cupo.
+
+**Causa de la no entrega:** todos esos jobs quedaron en `PENDING`/`DEAD` con
+`last_error = "Connection timeout"` del transporte SMTP (Brevo `587`, y también `465`). El envío
+desde el entorno local sí conecta, y un correo aislado llegó a marcarse `SENT`, pero Render no
+mantiene conexiones SMTP salientes estables.
+
+**Intentos de corrección y estado actual:**
+
+- `24da4a9`: timeouts SMTP ampliados y logging de entrega; no resolvió el bloqueo de red.
+- `b17552e` / `a47a80d`: se agregó el adaptador HTTPS `EMAIL_PROVIDER=brevo` con
+  `BREVO_API_KEY` dedicada. La clave SMTP (`xsmtpsib-…`) **no** es API key: Brevo respondió
+  `401 {"message":"Key not found","code":"unauthorized"}`.
+- Configuración de Render restaurada a `EMAIL_PROVIDER=smtp`, puerto `587`, `SMTP_SECURE=false`;
+  deploy `dep-dc30pplg1s2s73bemas0` `live`, `/health` 200. Quedan jobs de rechazo pendientes de
+  reenvío; **no se aprobó ningún pago**.
+
+**Para completar la entrega hace falta** una API key válida de Brevo (o de Resend) en Render. Con
+esa clave se configura `EMAIL_PROVIDER=brevo` + `BREVO_API_KEY` (o `resend` + `RESEND_API_KEY`) y se
+reenvían los jobs pendientes; el texto y el destinatario ya están verificados.
