@@ -315,8 +315,8 @@ Observación: no se habilitaron ventas pagadas y no se ejecutaron pagos reales.
 | Proyecto Supabase            | PASS          | Activo, consultable por MCP y desde la app                           |
 | Migraciones                  | PASS          | 2 aplicadas, 0 pendientes, 0 revertidas                              |
 | CORS / CSRF                  | PASS          | Origen hostil 403, cookie presente                                   |
-| SMTP (autenticación)         | PASS          | Brevo verificado por IPv4                                            |
-| Correo real                  | NOT TESTED    | Sin envío                                                            |
+| SMTP / HTTPS (email)         | PASS          | Brevo HTTPS activo; correo de rechazo entregado al comprador         |
+| Correo real                  | PASS          | Rechazo con motivo entregado y confirmado en eventos de Brevo        |
 | Storage (existencia)         | PASS          | Buckets privados creados                                             |
 | Storage (subida real)        | PASS          | Comprobante PNG subido: `201`, URL firmada `200 image/png`           |
 | Compra real                  | PASS          | Orden creada en navegador (`201`), QR visible y cupo liberado        |
@@ -336,7 +336,8 @@ Observación: no se habilitaron ventas pagadas y no se ejecutaron pagos reales.
 2. **¿Cuál es la URL pública?** https://gestion-eventos-pi.vercel.app
 3. **¿El frontend se comunica correctamente con el backend?** Sí. `/health` 200, `/health/ready` 200 y `/events?limit=100` 200; el error 400 por `limit` quedó corregido.
 4. **¿La base de datos funciona?** Sí. La API usa el session pooler IPv4; `DIRECT_URL` queda reservado para migraciones desde hosts con IPv6.
-5. **¿Los correos funcionan?** Autenticación SMTP verificada; envío real **no probado**.
+5. **¿Los correos funcionan?** Sí. Con `EMAIL_PROVIDER=brevo` y `BREVO_API_KEY` en Render se
+   entregaron los avisos de rechazo con el motivo al comprador; confirmado en los eventos de Brevo.
 6. **¿El almacenamiento funciona?** Sí: bucket privado ya existente, subida real de comprobante `201` y URL firmada HTTP `200` con `image/png`.
 7. **¿Se puede realizar una compra?** Sí, verificada en navegador: `POST /orders` → `201`, redirección al pedido y QR real cargado (`824x773`). Todas las órdenes de prueba de la verificación se cancelaron por API.
 8. **¿Se pueden aprobar pagos?** La lógica está implementada y probada localmente; en producción **no se aprobó ningún pago**. Existe un comprobante real enviado por el propio usuario en `ORD-261124-PHTXZW` que queda `PENDING_REVIEW` a la espera de su decisión.
@@ -434,8 +435,8 @@ commit, alias `gestion-eventos-pi.vercel.app`.
 
 ## 18. Verificación de correos de rechazo
 
-**Resultado de la revisión:** el flujo de negocio es correcto; la entrega está bloqueada por la red
-saliente de Render, no por el destinatario ni por el motivo.
+**Resultado final:** el flujo de negocio y la entrega son correctos. El destinatario y el motivo son
+los del comprador; el bloqueo de red SMTP se resolvió con el adaptador HTTPS de Brevo.
 
 - `PaymentsService.reject()` crea el job `PAYMENT_REJECTED` con
   `recipient = order.buyerEmail` y `reason = notes` (commit `b17552e`, sin cambios de negocio).
@@ -446,21 +447,32 @@ saliente de Render, no por el destinatario ni por el motivo.
 - En dos rechazos controlados creados por API (`ORD-261124-DARIC3` y `ORD-261124-CXIZRE`) se
   confirmó el mismo destino y el motivo enviado; ambas órdenes se cancelaron después para liberar cupo.
 
-**Causa de la no entrega:** todos esos jobs quedaron en `PENDING`/`DEAD` con
+**Causa del fallo inicial:** los jobs quedaron en `PENDING`/`DEAD` con
 `last_error = "Connection timeout"` del transporte SMTP (Brevo `587`, y también `465`). El envío
-desde el entorno local sí conecta, y un correo aislado llegó a marcarse `SENT`, pero Render no
-mantiene conexiones SMTP salientes estables.
+desde el entorno local sí conecta, pero Render no mantiene conexiones SMTP salientes estables.
 
-**Intentos de corrección y estado actual:**
+**Intentos previos:**
 
 - `24da4a9`: timeouts SMTP ampliados y logging de entrega; no resolvió el bloqueo de red.
 - `b17552e` / `a47a80d`: se agregó el adaptador HTTPS `EMAIL_PROVIDER=brevo` con
   `BREVO_API_KEY` dedicada. La clave SMTP (`xsmtpsib-…`) **no** es API key: Brevo respondió
   `401 {"message":"Key not found","code":"unauthorized"}`.
-- Configuración de Render restaurada a `EMAIL_PROVIDER=smtp`, puerto `587`, `SMTP_SECURE=false`;
-  deploy `dep-dc30pplg1s2s73bemas0` `live`, `/health` 200. Quedan jobs de rechazo pendientes de
-  reenvío; **no se aprobó ningún pago**.
 
-**Para completar la entrega hace falta** una API key válida de Brevo (o de Resend) en Render. Con
-esa clave se configura `EMAIL_PROVIDER=brevo` + `BREVO_API_KEY` (o `resend` + `RESEND_API_KEY`) y se
-reenvían los jobs pendientes; el texto y el destinatario ya están verificados.
+**Resolución final:**
+
+- El usuario entregó una API key válida de Brevo. Se cargó en Render como `BREVO_API_KEY` (sin
+  mostrar su valor ni guardarlo en el repositorio) y se fijó `EMAIL_PROVIDER=brevo`; deploy
+  `dep-dc30sap5efls7393qat0` `live`, `/health` 200.
+- Se reprogramaron los tres jobs `PAYMENT_REJECTED` afectados (`ORD-261124-PHTXZW`,
+  `ORD-261124-DARIC3`, `ORD-261124-CXIZRE`): los tres pasaron a `SENT` y los logs muestran
+  `Brevo accepted message in 270–733ms`.
+- Verificación de extremo a extremo ya con HTTPS: orden controlada `ORD-261124-MQ0TJO`,
+  comprobante subido (`201`), rechazo con motivo (`200`) y orden cancelada por API
+  (`201`, `CANCELLED`). El job `PAYMENT_REJECTED` quedó `SENT` con
+  `recipient = pierreelpro19@gmail.com` y el motivo en el payload.
+- La API de estadísticas de Brevo confirma `delivered` para
+  `Comprobante rechazado para ORD-261124-MQ0TJO` a las `22:28:02Z` y para
+  `Comprobante rechazado para ORD-261124-PHTXZW` a las `22:25:03Z`, ambas a
+  `pierreelpro19@gmail.com`.
+- Los jobs obsoletos `ORDER_CREATED`/`RECEIPT_RECEIVED` de las órdenes de prueba canceladas se
+  cerraron para evitar reenvíos duplicados. **No se aprobó ningún pago real.**
