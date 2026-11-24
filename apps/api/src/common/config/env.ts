@@ -84,7 +84,7 @@ export const envSchema = z
     SESSION_IDLE_MINUTES: z.coerce.number().int().positive().default(120),
     SESSION_ABSOLUTE_HOURS: z.coerce.number().int().positive().default(12),
 
-    EMAIL_PROVIDER: z.enum(['console', 'resend', 'smtp']).default('console'),
+    EMAIL_PROVIDER: z.enum(['console', 'resend', 'smtp', 'brevo']).default('console'),
     EMAIL_FROM: z.string().min(3).default('no-reply@eventos.local'),
     RESEND_API_KEY: optionalString,
     SMTP_HOST: optionalString,
@@ -99,6 +99,14 @@ export const envSchema = z
         code: 'custom',
         path: ['RESEND_API_KEY'],
         message: 'RESEND_API_KEY is required when EMAIL_PROVIDER=resend',
+      });
+    }
+
+    if (value.EMAIL_PROVIDER === 'brevo' && !value.SMTP_PASSWORD) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SMTP_PASSWORD'],
+        message: 'SMTP_PASSWORD (Brevo key) is required when EMAIL_PROVIDER=brevo',
       });
     }
 

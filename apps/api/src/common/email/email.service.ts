@@ -27,12 +27,14 @@ export class EmailService {
   private readonly provider: AppEnv['EMAIL_PROVIDER'];
   private readonly from: string;
   private readonly resendApiKey: string | undefined;
+  private readonly brevoApiKey: string | undefined;
   private smtpTransport: Transporter | undefined;
 
   constructor(private readonly config: ConfigService<AppEnv, true>) {
     this.provider = config.get('EMAIL_PROVIDER', { infer: true });
     this.from = config.get('EMAIL_FROM', { infer: true });
     this.resendApiKey = config.get('RESEND_API_KEY', { infer: true });
+    this.brevoApiKey = config.get('SMTP_PASSWORD', { infer: true });
   }
 
   async send(message: EmailMessage): Promise<void> {
@@ -44,6 +46,11 @@ export class EmailService {
 
     if (this.provider === 'resend') {
       await this.sendWithResend(message);
+      return;
+    }
+
+    if (this.provider === 'brevo') {
+      await this.sendWithBrevo(message);
       return;
     }
 
@@ -75,6 +82,36 @@ export class EmailService {
       const body = await response.text();
       throw new Error(`Resend rejected the message (${response.status}): ${body}`);
     }
+  }
+
+  /**
+   * HTTPS fallback: some hosts block outbound SMTP ports, so Brevo's REST API
+   * is used with the same key already configured for the SMTP relay.
+   */
+  private async sendWithBrevo(message: EmailMessage): Promise<void> {
+    if (!this.brevoApiKey) {
+      throw new Error('SMTP_PASSWORD (Brevo key) is required when EMAIL_PROVIDER=brevo');
+    }
+
+    const startedAt = Date.now();
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': this.brevoApiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sender: { email: this.from },
+        to: [{ email: message.to }],
+        subject: message.subject,
+        textContent: message.text,
+        ...(message.html ? { htmlContent: message.html } : {}),
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    const body = await response.text();
+    if (!response.ok) {
+      throw new Error(`Brevo rejected the message (${response.status}): ${body.slice(0, 500)}`);
+    }
+    this.logger.log(`Brevo accepted message in ${Date.now() - startedAt}ms`);
   }
 
   private async sendWithSmtp(message: EmailMessage): Promise<void> {
