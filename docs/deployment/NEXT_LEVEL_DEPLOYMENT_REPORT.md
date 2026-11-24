@@ -318,15 +318,15 @@ Observación: no se habilitaron ventas pagadas y no se ejecutaron pagos reales.
 | SMTP (autenticación)         | PASS          | Brevo verificado por IPv4                                            |
 | Correo real                  | NOT TESTED    | Sin envío                                                            |
 | Storage (existencia)         | PASS          | Buckets privados creados                                             |
-| Storage (subida real)        | NOT TESTED    | Sin comprobante real                                                 |
-| Compra real                  | NOT TESTED    | Ventas habilitadas y QR configurado; sin orden real                  |
-| Aprobación de pagos          | BLOCKED       | Sin comprobante real                                                 |
+| Storage (subida real)        | PASS          | Comprobante PNG subido: `201`, URL firmada `200 image/png`           |
+| Compra real                  | PASS          | Orden creada en navegador (`201`), QR visible y cupo liberado        |
+| Aprobación de pagos          | NOT TESTED    | Sin aprobaciones; 1 comprobante real queda pendiente de revisión     |
 | Emisión de tickets           | BLOCKED       | Sin orden confirmada real                                            |
 | Check-in real                | BLOCKED       | Sin ticket real                                                      |
 | Evento NEXT LEVEL            | PASS          | PUBLICADO, visible en `/events`, entrada General activa y a la venta |
 | QR bancario                  | PASS          | Archivo real publicado y variable de entorno configurada             |
 | Railway                      | NOT TESTED    | No utilizado                                                         |
-| **Dictamen global**          | **READY**     | Evento publicado y ventas abiertas; pendiente de prueba E2E de pago  |
+| **Dictamen global**          | **READY**     | Compra y comprobante verificados en producción; sin pagos reales     |
 
 ---
 
@@ -337,9 +337,9 @@ Observación: no se habilitaron ventas pagadas y no se ejecutaron pagos reales.
 3. **¿El frontend se comunica correctamente con el backend?** Sí. `/health` 200, `/health/ready` 200 y `/events?limit=100` 200; el error 400 por `limit` quedó corregido.
 4. **¿La base de datos funciona?** Sí. La API usa el session pooler IPv4; `DIRECT_URL` queda reservado para migraciones desde hosts con IPv6.
 5. **¿Los correos funcionan?** Autenticación SMTP verificada; envío real **no probado**.
-6. **¿El almacenamiento funciona?** Buckets privados creados; subida real **no probada**.
-7. **¿Se puede realizar una compra?** Sí: el evento está `PUBLISHED`, la entrada `General` tiene `isActive = true` y `onSale = true`, y el QR está configurado. No se ha ejecutado una compra real; la E2E local en schema `test` sí pasó históricamente.
-8. **¿Se pueden aprobar pagos?** No con evidencia real; sin comprobantes en producción. La lógica está implementada y probada localmente.
+6. **¿El almacenamiento funciona?** Sí: bucket privado ya existente, subida real de comprobante `201` y URL firmada HTTP `200` con `image/png`.
+7. **¿Se puede realizar una compra?** Sí, verificada en navegador: `POST /orders` → `201`, redirección al pedido y QR real cargado (`824x773`). Todas las órdenes de prueba de la verificación se cancelaron por API.
+8. **¿Se pueden aprobar pagos?** La lógica está implementada y probada localmente; en producción **no se aprobó ningún pago**. Existe un comprobante real enviado por el propio usuario en `ORD-261124-PHTXZW` que queda `PENDING_REVIEW` a la espera de su decisión.
 9. **¿Se generan tickets?** No en producción (0 filas). Localmente se generaron en E2E.
 10. **¿Se pueden validar los QR?** No con tickets reales de producción; localmente el doble scan fue rechazado con `409`.
 11. **¿El evento NEXT LEVEL está creado?** **Sí**, publicado, con lugar y dirección confirmados persistidos y una entrada `General` de 50 BOB / cupo 120 activa y a la venta.
@@ -374,3 +374,58 @@ que la respuesta HTTP no se completaba y el navegador seguía esperando. Existí
 - Página del pedido: `GET /orders/{code}` → `200`, estado “Esperando pago” y QR bancario cargado
   (`824x773`, `image/jpeg`).
 - Las órdenes de prueba creadas durante la diagnosis se cancelaron por API para liberar cupo.
+
+---
+
+## 17. Incidente: `internal server error` al enviar comprobante y latencia restante del checkout
+
+**Síntoma 1:** `POST /orders/{code}/payment-submissions` respondía `500` aunque el bucket `receipts`
+ya existía.
+
+**Causa raíz:** `SupabaseStorageService.ensureBucket()` solo aceptaba “ya existe” cuando el estado
+HTTP era `409` o `422`. El gateway administrado de Supabase respondió `400` con
+`code: "BucketAlreadyExists"` en el cuerpo, por lo que el adaptador lanzaba
+`Storage bucket setup failed (400)` antes de subir el archivo. No se creó ningún registro ni objeto:
+la base `payment_submissions` y el bucket seguían vacíos.
+
+**Corrección (commit `1778905`):**
+
+- `apps/api/src/common/storage/supabase-storage.service.ts`: se parsea el cuerpo y se acepta
+  `BucketAlreadyExists` o un mensaje “already exists” con cualquier estado HTTP; se mantiene el error
+  para fallos reales (por ejemplo `500`). Se memoíza el bucket verificado y se acotan los `fetch` de
+  subida,URL firmada y borrado con `AbortSignal.timeout`.
+- `apps/api/test/unit/supabase-storage.service.spec.ts`: Regression test con `global.fetch` mockeado:
+  `400` + `BucketAlreadyExists` continúa hacia el upload; un `500` real sí falla.
+
+**Síntoma 2:** después del fix del correo, el botón “Continuar al pago” tardaba ~3 s en dar feedback.
+
+**Causa:** el `fetch` de CSRF ocurría dentro del clic, se sumaba al preflight CORS y a la navegación RSC
+sin prefetch.
+
+**Corrección (commit `1778905`):**
+
+- `apps/web/src/app/events/[slug]/page.tsx`: `ensureCsrf()` se ejecuta al montar la página; el botón
+  muestra de inmediato un spinner, texto `Reservando tus entradas… no cierres esta ventana` con
+  `aria-live`, y guarda la orden devuelta en `sessionStorage` (`order:view:{code}`).
+- `apps/web/src/app/orders/[code]/page.tsx`: si hay esa entrada, pinta el pedido al instante y
+  muestra `Confirmando tu reserva…` mientras llega la API; el caché corrupto se ignora sin bloquear.
+- `apps/api/src/app-config.ts`: `maxAge: 600` en CORS para reutilizar el preflight.
+
+**Despliegue:** tras el primer deploy (`dep-dc304jl9fdbs73fgmo70`, `live`) la API seguía sirviendo
+código anterior —se confirmó porque `Access-Control-Max-Age` no aparecía y el stack apuntaba a la
+línea anterior de `ensureBucket`—. Se hizo un redeploy con caché limpia,
+`dep-dc3073rl550s73cdqr50` `live`, commit `1778905`; después `OPTIONS /orders` devolvió
+`Access-Control-Max-Age: 600`. Web: Vercel `dpl_FMKSxMRdBkShGrUrPrH7N38wUNAN`, `READY`, mismo
+commit, alias `gestion-eventos-pi.vercel.app`.
+
+**Verificación real en producción (sin pagos reales):**
+
+- Compra en navegador: feedback en **135 ms**, `POST /orders` → `201` en **1,98 s**, página del pedido
+  lista en **2,61 s**, sin errores de página; QR bancario real cargado (`824x773`).
+- Envío de comprobante PNG de prueba: `201` en **3,35 s**, estado `PENDING_REVIEW`, `receiptUrl`
+  firmada descargable (`200`, `image/png`, 68 bytes).
+- La orden de prueba de la verificación se canceló por API (`201`, `CANCELLED`) para liberar el cupo;
+  quedan `119` entradas disponibles de `120`.
+- `pnpm typecheck`, `pnpm build` y 13/13 pruebas focalizadas (storage, payments, orders): PASS.
+- El propio usuario envió además un comprobante real desde su navegador en `ORD-261124-PHTXZW`;
+  esa orden quedó en `PENDING_REVIEW` y **no fue aprobada ni cancelada** por esta verificación.
