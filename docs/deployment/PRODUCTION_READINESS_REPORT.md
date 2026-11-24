@@ -3,23 +3,24 @@
 **Proyecto:** Plataforma de gestión de eventos  
 **Fecha:** 2026-11-24  
 **Repositorio:** https://github.com/pierredevv/gestion_eventos  
-**Commit desplegado:** `08d2252`  
+**Commit desplegado:** `6bc1a83`  
 **Supabase reutilizado:** `aofqmxnvcbijynfdzhvf` (producción, sin borrado de datos)  
-**Dictamen:** **NOT READY** — falta la credencial de base de datos; no se declara producción operativa.
+**Dictamen:** **NOT READY** — la API ya arranca, pero la base de datos rechaza las credenciales; no se declara producción operativa.
 
 ---
 
 ## 1. Resumen ejecutivo
 
-El código auditado en QA (`b9ea47d`) y sus correcciones de despliegue (`f175564`, `e64d2f7`, `08d2252`) ya están publicados en GitHub. Se crearon los servicios de hosting y se corrigieron tres fallos reales de despliegue:
+El código auditado en QA (`b9ea47d`) y sus correcciones de despliegue (`f175564`, `e64d2f7`, `08d2252`, `6bc1a83`) ya están publicados en GitHub. Se corrigieron cuatro fallos reales de despliegue:
 
 1. `apps/api/src/common/storage/` no se subió a Git porque `.gitignore` ignoraba cualquier carpeta `storage/`.
-2. El contenedor de Render ejecutaba `prisma migrate deploy` y fallaba por conectividad al pooler; se eliminó esa ejecución del entrypoint.
-3. `vercel.json` apuntaba `outputDirectory` a `apps/web/.next`, ruta que se duplicaba al combinarla con `rootDirectory=apps/web`; se ajustó a `.next`.
+2. El contenedor de Render ejecutaba `prisma migrate deploy` y fallaba por conectividad; se eliminó esa ejecución del entrypoint.
+3. `vercel.json` apuntaba `outputDirectory` a `apps/web/.next`, ruta que se duplicaba con `rootDirectory=apps/web`; se ajustó a `.next`.
+4. `SUPABASE_SERVICE_ROLE_KEY` no estaba cargada en Render; ya fue provista por el usuario y **la API arranca correctamente** (deploy `dep-dc2tjkrncjis73dv4n60`, estado `live`).
 
-La web quedó **READY** en Vercel con el despliegue `dpl_FEw7iuQaFLQueNm8nq2nu5osc11A`. Brevo quedó configurado: IPv4 autorizado, remitente verificado `pierreelpro19@gmail.com`, SMTP key válida cargada y autenticación SMTP confirmada por IPv4.
+La web quedó **READY** en Vercel (`dpl_FEw7iuQaFLQueNm8nq2nu5osc11A`, HTTP 200). Brevo quedó configurado y autenticado por IPv4 con el remitente verificado `pierreelpro19@gmail.com`.
 
-La API sigue **bloqueada** en Render únicamente por `SUPABASE_SERVICE_ROLE_KEY`. La autenticación del CLI de Supabase está en curso en el navegador. No se han ejecutado pagos, correos, check-ins ni cargas de comprobantes en producción.
+El bloqueo actual es la **contraseña de PostgreSQL**: la API alcanza el host de base de datos, pero Postgres responde `Authentication failed against database server, the provided database credentials for 'postgres' are not valid`. Además, el host directo `db.aofqmxnvcbijynfdzhvf.supabase.co` publica solo registro AAAA (IPv6) y Render necesita el **session pooler IPv4**. No se han ejecutado pagos, correos, check-ins ni cargas de comprobantes en producción.
 
 ---
 
@@ -27,15 +28,15 @@ La API sigue **bloqueada** en Render únicamente por `SUPABASE_SERVICE_ROLE_KEY`
 
 | Componente | Referencia | Estado |
 | --- | --- | --- |
-| Repositorio | `pierredevv/gestion_eventos`, rama `master` | PASS — commit `08d2252` publicado |
-| Render API | `gestion-eventos-api` / `srv-dc2sukp42hec73938ou0` | BLOCKED — build OK, arranque rechazado por service role |
-| Render URL | `https://gestion-eventos-api-km0n.onrender.com` | FAIL — `/api/v1/health/ready` devolvió 503 |
-| Vercel web | Proyecto `gestion-eventos` / `prj_o7aFmDDNx9F6qfjttIk4yRxsHpfV` | PASS — despliegue `dpl_FEw7iuQaFLQueNm8nq2nu5osc11A` READY |
-| Vercel URL | `https://gestion-eventos-pi.vercel.app` | PASS — HTTP 200, contenido de la web verificado |
-| Supabase DB | `aofqmxnvcbijynfdzhvf` | PASS parcial — migración aplicada; sin datos de producción creados |
+| Repositorio | `pierredevv/gestion_eventos`, rama `master` | PASS — commit `6bc1a83` publicado |
+| Render API | `gestion-eventos-api` / `srv-dc2sukp42hec73938ou0` | PASS parcial — deploy `dep-dc2tjkrncjis73dv4n60` `live`; Nest iniciado sin errores de configuración |
+| Render URL | `https://gestion-eventos-api-km0n.onrender.com` | FAIL funcional — `/api/v1/health/ready` devuelve 503 por base de datos |
+| Vercel web | `gestion-eventos` / `prj_o7aFmDDNx9F6qfjttIk4yRxsHpfV` | PASS — `dpl_FEw7iuQaFLQueNm8nq2nu5osc11A` READY |
+| Vercel URL | `https://gestion-eventos-pi.vercel.app` | PASS — HTTP 200 |
+| Supabase DB | `aofqmxnvcbijynfdzhvf`, región `us-east-2`, `ACTIVE_HEALTHY` | BLOCKED — credencial PostgreSQL inválida |
 | Supabase Storage | Buckets `receipts` y `ticket-assets` | PASS — creados privados |
-| Supabase CLI | Global vía pnpm, versión `3.4.0` | PASS — `supabase` disponible en PATH |
-| Brevo SMTP | `smtp-relay.brevo.com:587` | PASS — autenticación verificada por IPv4 |
+| Supabase CLI | v3.4.0, login completado por el usuario | PASS — `supabase whoami` autenticado |
+| Brevo SMTP | `smtp-relay.brevo.com:587` | PASS — `SMTP_AUTH_OK_IPV4` |
 
 ---
 
@@ -44,12 +45,12 @@ La API sigue **bloqueada** en Render únicamente por `SUPABASE_SERVICE_ROLE_KEY`
 Del informe `docs/testing/TESTING_REPORT.md` (_commit base `5032c69`, cierre `b9ea47d`):
 
 - `pnpm test`: 12 suites / 60 pruebas / 0 fallos.
-- E2E con Chrome real: scenario obligatorio 2 General + 1 VIP = 200.00 Bs, 3 tickets, 3 check-ins y rechazo `409` del segundo scan.
+- E2E con Chrome real: 2 General + 1 VIP = 200.00 Bs, 3 tickets, 3 check-ins y rechazo `409` del segundo scan.
 - `typecheck`, `lint`, `build`, `format:check` y `openapi:generate`: PASS.
 - Base `public`: 19/19 tablas con RLS, 0 políticas, 0 grants para `anon`/`authenticated`.
-- Schema `test`: 19 tablas, sin RLS, 0 grants; se revocaron además privilegios de esquema y tablas durante esta fase, sin borrar datos.
+- Schema `test`: 19 tablas, sin RLS, 0 grants; privilegios revocados sin borrar datos.
 
-Esta evidencia es **local/aislada**. No equivale a prueba de producción.
+Esa evidencia es local/aislada; no equivale a prueba de producción.
 
 ---
 
@@ -57,65 +58,50 @@ Esta evidencia es **local/aislada**. No equivale a prueba de producción.
 
 | Verificación | Estado | Evidencia |
 | --- | --- | --- |
-| Push a GitHub | PASS | `git ls-remote origin master` = `08d2252` |
-| Corrección de fuentes Storage en Git | PASS | Commit `f175564`; build de Render superó TypeScript |
-| Eliminación de migraciones en el contenedor | PASS | Commit `e64d2f7`; logs ya no muestran `P1001` por `prisma migrate deploy` |
-| Configuración Vercel corregida | PASS | Commit `08d2252`; despliegue READY y URL con HTTP 200 |
+| Push a GitHub | PASS | `git ls-remote origin master` = `6bc1a83` |
+| Fuentes Storage en Git | PASS | Commit `f175564`; build de Render superó TypeScript |
+| Entrypoint sin migraciones | PASS | Commit `e64d2f7`; logs sin `P1001` por `prisma migrate deploy` |
+| Configuración Vercel | PASS | Commit `08d2252`; deploy READY y HTTP 200 |
 | Buckets privados Supabase | PASS | `receipts` y `ticket-assets`, `public=false` |
-| Revocación de privilegios en `test` | PASS | SQL ejecutado; sin borrado de datos |
-| Instalación global de Supabase CLI | PASS | `pnpm add -g supabase@3.4.0`; `command -v supabase` disponible |
-| Login Supabase en navegador | EN CURSO | Página `Authorize CLI | Supabase` abierta; código enviado al CLI |
-| Brevo IPv4 autorizado | PASS | `api.brevo.com/v3/account` respondió 200 desde IPv4 |
-| Remitente Brevo verificado | PASS | `pierreelpro19@gmail.com` listado como sender activo |
+| Login Supabase CLI | PASS | Usuario completó el flujo; `supabase whoami` devolvió identidad autenticada |
+| Service role en Render | PASS | API inició sin `SUPABASE_SERVICE_ROLE_KEY is required in production` |
+| Arranque de Nest en Render | PASS | Logs: `Nest application successfully started`, `API listening on http://localhost:4000/api/v1` |
 | SMTP key Brevo cargada | PASS | `SMTP_PASSWORD` reemplazado por clave `xsmtpsib-...` |
 | Autenticación SMTP | PASS | `nodemailer.verify()` → `SMTP_AUTH_OK_IPV4` |
-| CORS/CSRF entre dominios | CONFIGURADO / NO VERIFICADO | `WEB_ORIGIN` y `ADDITIONAL_WEB_ORIGINS` cargados en Render |
-| Healthcheck real de API | FAIL | HTTP 503 |
-| Login admin | NOT TESTED | API caída |
-| Catálogo y orden real | NOT TESTED | API caída |
-| Comprobante real | NOT TESTED | API caída |
-| Aprobación y emisión de tickets | NOT TESTED | API caída |
+| CORS: origen hostil | PASS | `POST /auth/login` con `Origin: https://evil.example` → HTTP 403 |
+| CSRF cookie | PASS | Cookie `csrf_token` presente tras `GET /health` |
+| `/health` | PASS | HTTP 200 |
+| `/health/ready` | FAIL | HTTP 503; `checks.database.ok=false`, `error=Database unavailable` |
+| Login admin real | FAIL | HTTP 500; logs de Render muestran error de autenticación PostgreSQL |
+| Catálogo, orden, comprobante, aprobación, tickets, check-in | NOT TESTED | Bloqueado por base de datos |
 | Correo real | NO VERIFICADO | SMTP autenticado; aún no se envía correo de prueba |
-| Check-in real | NOT TESTED | API caída |
 
 ---
 
-## 5. Bloqueos
+## 5. Bloqueo actual: credencial PostgreSQL
 
-### 5.1 Credencial pendiente en Render
+### 5.1 Diagnóstico
 
-Cargar directamente en el dashboard del servicio `gestion-eventos-api`, sin pegarla en la conversación:
+- El proyecto está `ACTIVE_HEALTHY` y accesible por MCP (`select 1` → OK).
+- `db.aofqmxnvcbijynfdzhvf.supabase.co` tiene solo registro AAAA `2600:1f16:...` (sin A). Render demonstró no poder conectarse por IPv6; eso explica los errores previos `Can't reach database server ...:5432`.
+- Probando la URL directa desde este entorno (que sí tiene IPv6), Postgres responde: `Authentication failed against database server, the provided database credentials for 'postgres' are not valid`. Por lo tanto la contraseña actual en Render/local es inválida, no es un problema de red únicamente.
+- La solución es usar el **session pooler IPv4** y una contraseña válida. Según la documentación oficial de Supabase, para redes IPv4-only corresponde `postgresql://postgres.<PROJECT-REF>:<PASSWORD>@<POOLER-HOST>:5432/postgres`; el host exacto debe copiarse del diálogo **Connect → Session pooler** del dashboard, no inventarse.
 
-```text
-SUPABASE_SERVICE_ROLE_KEY=<secret key de Supabase>
-```
+### 5.2 Acción requerida del usuario
 
-El resto de variables ya están cargadas. Para obtener el service role con el CLI instalado globalmente:
+Sin pegar secretos en la conversación:
 
-```bash
-supabase login
-supabase projects api-keys --remote=aofqmxnvcbijynfdzhvf --reveal --output json
-```
+1. En Supabase → Project Settings → Database, restablecer la contraseña de base de datos si no se recuerda la vigente.
+2. En Supabase → **Connect** → **Session pooler**, copiar la cadena completa ya construida con la contraseña vigente.
+3. Guardar esa cadena **solo** en un archivo local, por ejemplo `/tmp/opencode/database_url.txt`, sin `cat` ni imprimirla en el chat.
+4. Avisar que el archivo está listo. El agente cargará el mismo valor en Render como `DATABASE_URL` y `DIRECT_URL`, disparará el deploy y continuará la verificación.
 
-El valor secreto se guardará localmente en `/tmp/opencode/` y no se imprimirá en el transcript.
+No se borran datos, no se cambia el esquema y no se crea un proyecto nuevo.
 
-### 5.2 Correo Brevo
+### 5.3 Otros hallazgos
 
-Configuración final confirmada:
-
-- `SMTP_HOST=smtp-relay.brevo.com`
-- `SMTP_PORT=587`
-- `SMTP_SECURE=false`
-- `SMTP_USER=c4655b001@smtp-brevo.com`
-- `SMTP_PASSWORD=<SMTP key xsmtpsib-...>`
-- `EMAIL_FROM=pierreelpro19@gmail.com`
-
-La clave API `xkeysib-...` fue reemplazada por una SMTP key válida. La verificación con `nodemailer` devolvió autenticación correcta usando IPv4. No hay herramienta MCP de Brevo expuesta en este entorno; la configuración se hizo directamente contra Brevo y Render. No se enviarán correos reales sin autorización explícita.
-
-### 5.3 Seguridad de credenciales
-
-- La API key de Brevo, la SMTP key y el presunto MCP key quedaron visibles en el transcript. Rotarlos si la conversación puede compartirse.
-- Durante la revisión de configuración se imprimió accidentalmente un bearer token de Render en el transcript. Si ese transcript se comparte, rotar también el token de acceso de Render.
+- `NEXT_PUBLIC_PAYMENT_QR_URL` sigue vacío hasta que se facilite una imagen real del QR bancario; la UI ya lo advierte.
+- La API key de Brevo, la SMTP key y un bearer token de Render quedaron visibles en el transcript previo. Rotar si la conversación puede compartirse.
 
 ---
 
@@ -135,9 +121,9 @@ RESERVATION_TTL_MINUTES=25
 MAX_RECEIPT_SIZE_MB=5
 SUPABASE_STORAGE_BUCKET_RECEIPTS=receipts
 SUPABASE_STORAGE_BUCKET_TICKETS=ticket-assets
-DATABASE_URL=*** (desde .env local)
-DIRECT_URL=*** (desde .env local)
-SUPABASE_URL=*** (desde .env local)
+DATABASE_URL=*** (inválida: contraseña rechazada y host IPv6)
+DIRECT_URL=*** (inválida: contraseña rechazada y host IPv6)
+SUPABASE_URL=https://aofqmxnvcbijynfdzhvf.supabase.co
 TOKEN_ENCRYPTION_KEY=*** (desde .env local)
 EMAIL_PROVIDER=smtp
 SMTP_HOST=smtp-relay.brevo.com
@@ -146,7 +132,7 @@ SMTP_SECURE=false
 SMTP_USER=c4655b001@smtp-brevo.com
 SMTP_PASSWORD=*** (SMTP key válida cargada)
 EMAIL_FROM=pierreelpro19@gmail.com
-SUPABASE_SERVICE_ROLE_KEY=*** (pendiente de carga)
+SUPABASE_SERVICE_ROLE_KEY=*** (cargada; arranque verificado)
 ```
 
 ### Vercel (web)
@@ -158,19 +144,16 @@ NEXT_PUBLIC_API_HEALTH_URL=https://gestion-eventos-api-km0n.onrender.com/api/v1/
 NEXT_PUBLIC_RESERVATION_MINUTES=25
 ```
 
-`NEXT_PUBLIC_PAYMENT_QR_URL` queda vacío hasta que se facilite la imagen real del QR bancario; la UI ya muestra esa advertencia.
-
 ---
 
 ## 7. Dictamen final
 
 **NOT READY.**
 
-No se declara `READY FOR PILOT` ni `READY FOR PRODUCTION` porque:
+La API ya compila, despliega e inicia; la web está operativa; CORS/CSRF y SMTP están verificados. No se declara `READY FOR PILOT` ni `READY FOR PRODUCTION` porque:
 
-- La API no arranca en Render: falta `SUPABASE_SERVICE_ROLE_KEY`.
-- El healthcheck de producción devolvió 503.
-- No hay evidencia de correo real enviado, subida real a Storage ni flujo completo de compra en los despliegues.
-- La web sí quedó READY, pero eso no habilita la operación completa sin la API.
+- La contraseña de PostgreSQL es inválida y el host directo es IPv6-only, por lo que `/health/ready` devuelve 503 y el login admin devuelve 500.
+- No hay evidencia de flujo completo en los despliegues: catálogo, orden, comprobante, aprobación, tickets, correo y check-in.
+- No se ejecutaron operaciones financieras reales.
 
-Una vez cargada la credencial y tras verificar healthcheck, CORS, login, catálogo, orden, comprobante, aprobación, tickets, correo y check-in sin operaciones financieras reales, este informe debe actualizarse con el dictamen final.
+Tras cargar la cadena del session pooler y verificar healthcheck, login, catálogo, orden, comprobante, aprobación, tickets, correo autorizado y check-in sin pagos reales, este informe debe actualizarse con el dictamen final.
