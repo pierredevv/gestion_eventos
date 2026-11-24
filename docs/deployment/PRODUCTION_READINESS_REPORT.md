@@ -5,7 +5,7 @@
 **Repositorio:** https://github.com/pierredevv/gestion_eventos  
 **Commit desplegado:** `08d2252`  
 **Supabase reutilizado:** `aofqmxnvcbijynfdzhvf` (producción, sin borrado de datos)  
-**Dictamen:** **NOT READY** — configuración incompleta; no se declara producción operativa.
+**Dictamen:** **NOT READY** — credenciales operativas incompletas; no se declara producción operativa.
 
 ---
 
@@ -17,7 +17,14 @@ El código auditado en QA (`b9ea47d`) y sus correcciones de despliegue (`f175564
 2. El contenedor de Render ejecutaba `prisma migrate deploy` y fallaba por conectividad al pooler; se eliminó esa ejecución del entrypoint.
 3. `vercel.json` apuntaba `outputDirectory` a `apps/web/.next`, ruta que se duplicaba al combinarla con `rootDirectory=apps/web`; se ajustó a `.next`.
 
-La web quedó **READY** en Vercel con el despliegue `dpl_FEw7iuQaFLQueNm8nq2nu5osc11A`. La API sigue **bloqueada** en Render únicamente por `SUPABASE_SERVICE_ROLE_KEY`: las variables SMTP ya están cargadas, pero la autenticación contra Brevo fue rechazada desde esta IP (`535 5.7.8`) y queda pendiente autorizar/quitar la restricción de IP. No se han ejecutado pagos, correos, check-ins ni cargas de comprobantes en producción.
+La web quedó **READY** en Vercel con el despliegue `dpl_FEw7iuQaFLQueNm8nq2nu5osc11A`. La IP IPv4 autorizada por Brevo ya responde 200 y el remitente verificado confirmado es `pierreelpro19@gmail.com`, cargado como `EMAIL_FROM`.
+
+La API sigue **bloqueada** en Render por dos credenciales:
+
+- `SUPABASE_SERVICE_ROLE_KEY` aún no está cargada.
+- La clave `xkeysib-...` proporcionada es una **API key** de Brevo, no una **SMTP key** (`xsmtpsib-...`). Brevo rechaza el login SMTP con `535 5.7.8`.
+
+Además, las consultas a la API de Brevo desde este entorno salen por IPv6 `2800:cd0:...`, que Brevo todavía marca como no autorizada. No se han ejecutado pagos, correos, check-ins ni cargas de comprobantes en producción.
 
 ---
 
@@ -26,12 +33,14 @@ La web quedó **READY** en Vercel con el despliegue `dpl_FEw7iuQaFLQueNm8nq2nu5o
 | Componente | Referencia | Estado |
 | --- | --- | --- |
 | Repositorio | `pierredevv/gestion_eventos`, rama `master` | PASS — commit `08d2252` publicado |
-| Render API | `gestion-eventos-api` / `srv-dc2sukp42hec73938ou0` | BLOCKED — build OK, arranque rechazado por variables faltantes |
+| Render API | `gestion-eventos-api` / `srv-dc2sukp42hec73938ou0` | BLOCKED — build OK, arranque rechazado por credenciales |
 | Render URL | `https://gestion-eventos-api-km0n.onrender.com` | FAIL — `/api/v1/health/ready` devolvió 503 |
 | Vercel web | Proyecto `gestion-eventos` / `prj_o7aFmDDNx9F6qfjttIk4yRxsHpfV` | PASS — despliegue `dpl_FEw7iuQaFLQueNm8nq2nu5osc11A` READY |
 | Vercel URL | `https://gestion-eventos-pi.vercel.app` | PASS — HTTP 200, contenido de la web verificado |
 | Supabase DB | `aofqmxnvcbijynfdzhvf` | PASS parcial — migración aplicada; sin datos de producción creados |
 | Supabase Storage | Buckets `receipts` y `ticket-assets` | PASS — creados privados |
+| Supabase CLI | Global vía pnpm, versión `3.4.0` | PASS — `supabase` disponible en PATH |
+| Brevo API | `api.brevo.com/v3/account` | PASS parcial — IPv4 autorizado; IPv6 pendiente |
 
 ---
 
@@ -59,14 +68,19 @@ Esta evidencia es **local/aislada**. No equivale a prueba de producción.
 | Configuración Vercel corregida | PASS | Commit `08d2252`; despliegue READY y URL con HTTP 200 |
 | Buckets privados Supabase | PASS | `receipts` y `ticket-assets`, `public=false` |
 | Revocación de privilegios en `test` | PASS | SQL ejecutado; sin borrado de datos |
-| SMTP cargado en Render | CONFIGURADO / AUTH FAIL | Variables cargadas; `nodemailer.verify()` devolvió `EAUTH 535 5.7.8` desde IP `166.114.162.186` |
+| Instalación global de Supabase CLI | PASS | `pnpm add -g supabase@3.4.0`; `command -v supabase` disponible |
+| Login Supabase en navegador | EN CURSO | Flujo abierto automáticamente; el usuario debe completarlo |
+| Brevo IPv4 autorizado | PASS | `api.brevo.com/v3/account` respondió 200 desde IPv4 |
+| Brevo IPv6 autorizado | FAIL | `2800:cd0:...` rechazada con `unrecognised IP` |
+| Remitente Brevo verificado | PASS | `pierreelpro19@gmail.com` listado como sender activo |
+| SMTP autenticación | FAIL | `EAUTH 535 5.7.8`; la clave cargada es API key, no SMTP key |
 | CORS/CSRF entre dominios | CONFIGURADO / NO VERIFICADO | `WEB_ORIGIN` y `ADDITIONAL_WEB_ORIGINS` cargados en Render |
 | Healthcheck real de API | FAIL | HTTP 503 |
 | Login admin | NOT TESTED | API caída |
 | Catálogo y orden real | NOT TESTED | API caída |
 | Comprobante real | NOT TESTED | API caída |
 | Aprobación y emisión de tickets | NOT TESTED | API caída |
-| Correo real | NOT TESTED | Sin credenciales Brevo |
+| Correo real | BLOCKED | Falta SMTP key y autorización IPv6 |
 | Check-in real | NOT TESTED | API caída |
 
 ---
@@ -79,31 +93,33 @@ Cargar directamente en el dashboard del servicio `gestion-eventos-api`, sin pega
 
 ```text
 SUPABASE_SERVICE_ROLE_KEY=<secret key de Supabase>
-EMAIL_PROVIDER=smtp
-SMTP_HOST=smtp-relay.brevo.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=<usuario Brevo>
-SMTP_PASSWORD=<clave SMTP Brevo>
-EMAIL_FROM=<remitente verificado en Brevo>
+SMTP_PASSWORD=<SMTP key de Brevo, xsmtpsib-...>
 ```
 
-Para obtener el service role con CLI:
+El resto de variables ya están cargadas. Para obtener el service role con el CLI instalado globalmente:
 
 ```bash
 supabase login
-supabase projects api-keys --remote=aofqmxnvcbijynfdzhvf --reveal
+supabase projects api-keys --remote=aofqmxnvcbijynfdzhvf --reveal --output json
 ```
 
-Copiar el valor `sb_secret_...` / `service_role` como `SUPABASE_SERVICE_ROLE_KEY`.
+El valor secreto se guardará localmente en `/tmp/opencode/` y no se imprimirá en el transcript.
 
-### 5.2 Correo
+### 5.2 Correo Brevo
 
-Se eligió **Brevo (SMTP)**. Se cargaron `SMTP_HOST`, `SMTP_PORT=587`, `SMTP_SECURE=false`, `SMTP_USER`, `SMTP_PASSWORD` y `EMAIL_FROM=c4655b001@smtp-brevo.com`. La verificación de autenticación SMTP falló con `EAUTH 535 5.7.8` y la API de Brevo rechazó la IP `166.114.162.186`. El usuario autorizará la IP o desactivará la restricción. No se enviarán correos reales sin autorización explícita, y `EMAIL_FROM` debe ser un remitente/dominio verificado en Brevo para que la entrega sea aceptada.
+Se eligió **Brevo (SMTP)**. Estado real:
+
+- Se cargaron `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_PORT=587`, `SMTP_SECURE=false`, `SMTP_USER=c4655b001@smtp-brevo.com` y `EMAIL_FROM=pierreelpro19@gmail.com`.
+- El remitente `pierreelpro19@gmail.com` está verificado en Brevo.
+- La clave `xkeysib-...` entregada es una **API key**. Brevo SMTP exige una **SMTP key** con prefijo `xsmtpsib-...`, generada en Brevo → Settings → SMTP & API → SMTP keys. Esa clave debe reemplazar el valor actual de `SMTP_PASSWORD`.
+- La IP IPv4 `166.114.162.186` quedó autorizada, pero las consultas desde este entorno también salen por IPv6 `2800:cd0:...` y Brevo la rechaza. Recomendación: desactivar la restricción por IP o agregar también el rango IPv6.
+- No hay herramienta MCP de Brevo expuesta en este entorno; la configuración se hizo directamente contra Brevo y Render.
+- No se enviarán correos reales sin autorización explícita.
 
 ### 5.3 Seguridad de credenciales
 
-Durante la revisión de configuración se imprimió accidentalmente un bearer token de Render en el transcript. Si ese transcript se comparte, rotar el token de acceso de Render.
+- La API key de Brevo y el presunto MCP key quedaron visibles en el transcript. Rotarlos si la conversación puede compartirse.
+- Durante la revisión de configuración se imprimió accidentalmente un bearer token de Render en el transcript. Si ese transcript se comparte, rotar también el token de acceso de Render.
 
 ---
 
@@ -131,10 +147,10 @@ EMAIL_PROVIDER=smtp
 SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=*** (cargado)
-SMTP_PASSWORD=*** (cargado)
-EMAIL_FROM=c4655b001@smtp-brevo.com
-SUPABASE_SERVICE_ROLE_KEY=*** (pendiente de carga por el usuario)
+SMTP_USER=c4655b001@smtp-brevo.com
+SMTP_PASSWORD=*** (API key cargada; reemplazar por SMTP key)
+EMAIL_FROM=pierreelpro19@gmail.com
+SUPABASE_SERVICE_ROLE_KEY=*** (pendiente de carga)
 ```
 
 ### Vercel (web)
@@ -156,8 +172,9 @@ NEXT_PUBLIC_RESERVATION_MINUTES=25
 
 No se declara `READY FOR PILOT` ni `READY FOR PRODUCTION` porque:
 
-- La API no arranca en Render: falta `SUPABASE_SERVICE_ROLE_KEY`.
-- La autenticación SMTP de Brevo fue rechazada por restricción de IP; el correo real no está validado.
+- La API no arranca en Render: faltan `SUPABASE_SERVICE_ROLE_KEY` y una SMTP key válida.
+- La autenticación SMTP de Brevo fue rechazada por usar una API key como contraseña.
+- La IP IPv6 de este entorno sigue sin autorización en Brevo.
 - El healthcheck de producción devolvió 503.
 - No hay evidencia de correo real, subida real a Storage ni flujo completo de compra en los despliegues.
 - La web sí quedó READY, pero eso no habilita la operación completa sin la API.
