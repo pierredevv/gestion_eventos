@@ -3,16 +3,22 @@
 **Fecha:** 2026-11-24  
 **Repositorio:** https://github.com/pierredevv/gestion_eventos  
 **Rama:** `master`  
-**Commit de código desplegado:** `d044fc8`  
-**Commit de la API desplegada en Render:** `d044fc8` (deploy `dep-dc2tskd9el5s73crctg0`, estado `live`, confirmado en esta sesión)  
-**Commit del frontend desplegado en Vercel:** `d044fc8` (deploy `dpl_926EfXzqEgvtDzToPfHSBVPcMjDC`, `READY`)  
-**Nota:** este informe se publica en un commit posterior de solo documentación; el código desplegado no cambió.  
-**Dictamen:** **NOT READY — despliegue parcial.** La web está publicada y la API está desplegada, pero la conexión de la aplicación a PostgreSQL es inválida. El evento **NEXT LEVEL no fue creado**: el sistema existente exige campos que el usuario ordenó dejar pendientes y no permite registrar organizador, contacto, programa ni eslogan sin cambios de sistema.
+**Commit de código desplegado:** `4fb84b6`
+
+**Commit de la API desplegada en Render:** `4fb84b6` (deploy `dep-dc2uqu3l550s73c9rm60`, estado `live`)
+
+**Commit del frontend desplegado en Vercel:** `4fb84b6` (deploy `dpl_9iMKRvZmpDYhmesjk7CL3dUK8KLG`, `READY`)
+
+**Dictamen actualizado:** **READY para administración.** Web y API operativas, conexión a PostgreSQL funcionando, catálogo `/events?limit=100` → 200, panel administrativo accesible y evento **NEXT LEVEL creado como DRAFT**, sin publicar y sin ventas habilitadas.
 
 > **Actualización 2026-11-24 19:23 UTC:** el bloqueo de conexión a PostgreSQL quedó resuelto mediante
 > el session pooler IPv4 de Supabase. Ver
 > [`DB_CONNECTION_INCIDENT_RESOLUTION_REPORT.md`](DB_CONNECTION_INCIDENT_RESOLUTION_REPORT.md).
-> El resto del dictamen de este informe (evento NEXT LEVEL no creado) se mantiene.
+>
+> **Actualización 2026-11-24 20:07 UTC:** se corrigió el `import type` de `ListEventsDto` que causaba el
+> 400 del catálogo, se publicaron los cambios para `location`/`address` opcionales y se creó NEXT LEVEL
+> desde la API administrativa con sesión real. Las secciones técnicas posteriores conservan el estado
+> original de la investigación; esta nota y la sección 14 reflejan el estado final verificado.
 
 > Clasificación usada: **PASS** = verificado con evidencia; **FAIL** = verificado y negativo; **BLOCKED** = impedimento real que requiere acción/autorizaciónn; **NOT TESTED** = no ejecutado.
 
@@ -201,7 +207,26 @@ Esta evidencia es **local y aislada**; no demuestra operación en producción.
 
 ## 11. Estado de la creación del evento NEXT LEVEL
 
-**Clasificación: BLOCKED. No se creó ningún registro.**
+**Clasificación final: RESUELTO. El evento fue creado como DRAFT.**
+
+Registro creado y verificado:
+
+| Campo                  | Valor persistido                                                                                          |
+| ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| ID                     | `ee88d1db-8d78-44dc-bae0-dda9456362d6`                                                                    |
+| Slug                   | `next-level`                                                                                              |
+| Título                 | `NEXT LEVEL`                                                                                              |
+| Estado                 | `DRAFT` (`publishedAt = null`)                                                                            |
+| `location` / `address` | `null` / `null`; la UI muestra “Por definir”                                                              |
+| Evento                 | `2026-11-27T10:00:00-04:00` → `2026-11-27T12:30:00-04:00`                                                 |
+| Inscripción            | `2026-11-24T16:30:00-04:00` → `2026-11-27T10:00:00-04:00`                                                 |
+| Entrada `General`      | 50.00 BOB, cupo 120, ventas `2026-11-24T16:30:00-04:00` → `2026-11-27T10:00:00-04:00`, `isActive = false` |
+
+El eslogan, la categoría, el organizador, el contacto y el programa se conservaron dentro de
+`description`, usando solo campos existentes. No se crearon campos nuevos, no se publicó el evento,
+no se habilitaron ventas y no se cargó ningún logo porque no se entregó el archivo.
+
+Estado original de la investigación (histórico):
 
 Datos confirmados que se respetaron y NO se inventaron:
 
@@ -275,10 +300,10 @@ Observación: no se habilitaron ventas pagadas y no se ejecutaron pagos reales.
 | ---------------------------- | ------------- | --------------------------------------------------------------------- |
 | Despliegue de la web         | PASS          | Vercel `READY`, HTTP 200                                              |
 | Despliegue de la API         | PASS          | Render `live`, Nest iniciado                                          |
-| Operación integral de la API | FAIL          | `/health/ready` 503, login 500                                        |
-| Conexión app → PostgreSQL    | FAIL          | Credencial rechazada                                                  |
-| Proyecto Supabase            | PASS          | Activo y consultable por MCP                                          |
-| Migraciones                  | PASS          | 1 aplicada, 0 revertidas                                              |
+| Operación integral de la API | PASS          | `/health/ready` 200, `/events?limit=100` 200, login admin 200         |
+| Conexión app → PostgreSQL    | PASS          | Session pooler IPv4 verificado                                        |
+| Proyecto Supabase            | PASS          | Activo, consultable por MCP y desde la app                            |
+| Migraciones                  | PASS          | 2 aplicadas, 0 pendientes, 0 revertidas                               |
 | CORS / CSRF                  | PASS          | Origen hostil 403, cookie presente                                    |
 | SMTP (autenticación)         | PASS          | Brevo verificado por IPv4                                             |
 | Correo real                  | NOT TESTED    | Sin envío                                                             |
@@ -288,24 +313,24 @@ Observación: no se habilitaron ventas pagadas y no se ejecutaron pagos reales.
 | Aprobación de pagos          | BLOCKED       | Sin comprobante real                                                  |
 | Emisión de tickets           | BLOCKED       | Sin orden confirmada real                                             |
 | Check-in real                | BLOCKED       | Sin ticket real                                                       |
-| Evento NEXT LEVEL            | BLOCKED       | Campos obligatorios no confirmados; sin campos para datos adicionales |
+| Evento NEXT LEVEL            | PASS          | Creado como DRAFT con entrada General; sin publicar ni vender         |
 | QR bancario                  | BLOCKED       | Archivo no entregado                                                  |
 | Railway                      | NOT TESTED    | No utilizado                                                          |
-| **Dictamen global**          | **NOT READY** | Despliegue parcial, no operatividad integral                          |
+| **Dictamen global**          | **READY**     | Administración operativa; publicación y ventas requieren autorización |
 
 ---
 
 ## 15. Respuestas directas
 
-1. **¿El sistema está desplegado?** Sí, parcialmente. Web `READY` en Vercel; API desplegada y arrancada en Render, pero funcionalmente degradada por PostgreSQL. **No equivale a sistema operativo integral.**
+1. **¿El sistema está desplegado?** Sí. Web `READY` en Vercel y API `live` en Render, ambas en `4fb84b6`. El panel administrativo es utilizable.
 2. **¿Cuál es la URL pública?** https://gestion-eventos-pi.vercel.app
-3. **¿El frontend se comunica correctamente con el backend?** Conectividad HTTP sí (`/health` 200), funcionamiento no (`/health/ready` 503 y login 500).
-4. **¿La base de datos funciona?** A nivel de proyecto/MCP sí; para la aplicación **no**: la credencial provista es rechazada y el host directo es IPv6-only.
+3. **¿El frontend se comunica correctamente con el backend?** Sí. `/health` 200, `/health/ready` 200 y `/events?limit=100` 200; el error 400 por `limit` quedó corregido.
+4. **¿La base de datos funciona?** Sí. La API usa el session pooler IPv4; `DIRECT_URL` queda reservado para migraciones desde hosts con IPv6.
 5. **¿Los correos funcionan?** Autenticación SMTP verificada; envío real **no probado**.
 6. **¿El almacenamiento funciona?** Buckets privados creados; subida real **no probada**.
 7. **¿Se puede realizar una compra?** No en producción actual: DB de aplicación caída y QR pendiente. La E2E local en schema `test` sí pasó históricamente.
 8. **¿Se pueden aprobar pagos?** No con evidencia real; sin comprobantes en producción. La lógica está implementada y probada localmente.
 9. **¿Se generan tickets?** No en producción (0 filas). Localmente se generaron en E2E.
 10. **¿Se pueden validar los QR?** No con tickets reales de producción; localmente el doble scan fue rechazado con `409`.
-11. **¿El evento NEXT LEVEL está creado?** **No.** BLOCKED por campos obligatorios no confirmados y por ausencia de campos para el resto de datos; además el panel administrativo está inaccesible por DB.
-12. **¿Qué falta para publicarlo y abrir ventas?** Corregir la contraseña de PostgreSQL; confirmar lugar/dirección y ventanas de registro/ventas; entregar el QR real y publicarlo en `NEXT_PUBLIC_PAYMENT_QR_URL`; decidir qué hacer con eslogan/categoría/organizador/contacto/programa/logo que el sistema no soporta; y solo entonces verificar compra, comprobante, aprobación, tickets, correo y check-in sin pagos reales.
+11. **¿El evento NEXT LEVEL está creado?** **Sí**, como `DRAFT`, con `location`/`address` vacíos y una entrada `General` de 50 BOB / cupo 120. No está publicado y `isActive = false`.
+12. **¿Qué falta para publicarlo y abrir ventas?** Autorizar la publicación, activar la entrada, completar lugar/dirección cuando se confirmen, entregar el QR real y publicarlo en `NEXT_PUBLIC_PAYMENT_QR_URL`; después verificar compra, comprobante, aprobación, tickets, correo y check-in sin pagos reales. No se agregaron campos nuevos para eslogan, categoría, organizador, contacto, programa ni logo; esa información quedó en `description`.
