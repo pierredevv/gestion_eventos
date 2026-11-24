@@ -38,6 +38,8 @@ export function configureApp(app: NestExpressApplication): void {
       'X-Request-Id',
     ],
     exposedHeaders: ['x-request-id', 'X-CSRF-Token'],
+    // Avoid a fresh OPTIONS round trip before every checkout mutation.
+    maxAge: 600,
   });
 
   app.setGlobalPrefix('api/v1');

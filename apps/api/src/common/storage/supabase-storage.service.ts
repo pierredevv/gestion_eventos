@@ -43,6 +43,7 @@ export class SupabaseStorageService extends StorageService {
         'cache-control': '3600',
       },
       body: input.data,
+      signal: AbortSignal.timeout(20_000),
     });
     if (!response.ok) {
       throw new Error(`Storage upload failed (${response.status}): ${await response.text()}`);
@@ -58,6 +59,7 @@ export class SupabaseStorageService extends StorageService {
       method: 'POST',
       headers: { ...this.headers(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ expiresIn: expiresInSeconds }),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) {
       throw new Error(`Storage signed URL failed (${response.status}): ${await response.text()}`);
@@ -75,6 +77,7 @@ export class SupabaseStorageService extends StorageService {
     const response = await fetch(this.objectUrl(bucket, key), {
       method: 'DELETE',
       headers: this.headers(),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) {
       this.logger.warn(`Storage delete failed (${response.status}) for ${bucket}/${key}`);
@@ -95,11 +98,32 @@ export class SupabaseStorageService extends StorageService {
         public: false,
         file_size_limit: this.config.get('MAX_RECEIPT_SIZE_MB', { infer: true }) * 1024 * 1024,
       }),
+      signal: AbortSignal.timeout(10_000),
     });
-    if (!response.ok && response.status !== 409 && response.status !== 422) {
-      throw new Error(`Storage bucket setup failed (${response.status}): ${await response.text()}`);
+    const body = await response.text();
+    // Supabase responds with 409 or 422 here, but the managed gateway has also
+    // been observed returning HTTP 400 with code BucketAlreadyExists. In every
+    // case the bucket is ready, so "already exists" is not an error.
+    if (
+      !response.ok &&
+      response.status !== 409 &&
+      response.status !== 422 &&
+      !this.isAlreadyExistingBucket(body)
+    ) {
+      throw new Error(`Storage bucket setup failed (${response.status}): ${body}`);
     }
     this.ensuredBuckets.add(bucket);
+  }
+
+  private isAlreadyExistingBucket(body: string): boolean {
+    if (!body) return false;
+    try {
+      const parsed = JSON.parse(body) as { code?: unknown; message?: unknown; error?: unknown };
+      if (parsed.code === 'BucketAlreadyExists') return true;
+      return /already exists/i.test(`${parsed.message ?? ''} ${parsed.error ?? ''}`);
+    } catch {
+      return /already exists/i.test(body);
+    }
   }
 
   private objectUrl(bucket: StorageBucket, key: string): string {

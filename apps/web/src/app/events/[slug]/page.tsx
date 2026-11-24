@@ -13,7 +13,7 @@ import {
   Loading,
   Notice,
 } from '@/components/ui';
-import { apiFetch, apiSend, ApiRequestError } from '@/lib/api';
+import { apiFetch, apiSend, ensureCsrf, ApiRequestError } from '@/lib/api';
 import { formatDate, formatMoney, formatDateTime } from '@/lib/format';
 import type { CreatedOrderResult, EventView, TicketTypeView } from '@/lib/types';
 
@@ -78,6 +78,12 @@ export default function EventDetailPage(): ReactNode {
       active = false;
     };
   }, [slug]);
+
+  // Warm the CSRF token while the buyer fills the form, so clicking checkout
+  // does not have to wait for an extra /health round trip first.
+  useEffect(() => {
+    void ensureCsrf();
+  }, []);
 
   const cartRows = useMemo<CartRow[]>(() => {
     if (!event) return [];
@@ -179,6 +185,7 @@ export default function EventDetailPage(): ReactNode {
         })),
       });
       sessionStorage.setItem(`order:${result.order.orderCode}`, result.accessToken);
+      sessionStorage.setItem(`order:view:${result.order.orderCode}`, JSON.stringify(result.order));
       router.push(
         `/orders/${result.order.orderCode}?token=${encodeURIComponent(result.accessToken)}`,
       );
@@ -408,6 +415,19 @@ export default function EventDetailPage(): ReactNode {
             </div>
 
             {error ? <Notice>{error}</Notice> : null}
+            {submitting ? (
+              <p
+                className="text-ink-muted mt-3 flex items-center gap-2 text-xs"
+                role="status"
+                aria-live="polite"
+              >
+                <span
+                  aria-hidden="true"
+                  className="border-accent h-3 w-3 animate-spin rounded-full border-2 border-t-transparent"
+                />
+                Reservando tus entradas… no cierres esta ventana.
+              </p>
+            ) : null}
             <button
               className={`${buttonClass} w-full`}
               type="button"
@@ -419,7 +439,17 @@ export default function EventDetailPage(): ReactNode {
               }
               onClick={() => void submit()}
             >
-              {submitting ? 'Reservando…' : 'Continuar al pago'}
+              {submitting ? (
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+                  />
+                  Reservando…
+                </span>
+              ) : (
+                'Continuar al pago'
+              )}
             </button>
           </div>
         </section>

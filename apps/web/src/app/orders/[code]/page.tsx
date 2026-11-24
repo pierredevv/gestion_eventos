@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { PageBody } from '@/components/site-shell';
-import { Badge, buttonClass, Field, inputClass, Loading, Notice } from '@/components/ui';
+import { Badge, buttonClass, Field, inputClass, Notice } from '@/components/ui';
 import { apiFetch, apiSend, apiUpload, ApiRequestError } from '@/lib/api';
 import { formatDateTime, formatMoney } from '@/lib/format';
 import type { OrderView } from '@/lib/types';
@@ -27,6 +27,23 @@ export default function OrderPage(): ReactNode {
   useEffect(() => {
     const effective = queryToken ?? sessionStorage.getItem(`order:${code}`) ?? '';
     setToken(effective);
+    // The checkout response is kept in this tab, so the buyer sees the order
+    // immediately instead of waiting for the API round trip on first paint.
+    const cached = sessionStorage.getItem(`order:view:${code}`);
+    if (cached && effective) {
+      try {
+        const view = JSON.parse(cached) as OrderView;
+        if (view.orderCode === code) {
+          setOrder(view);
+          setForm((current) => ({
+            ...current,
+            declaredAmount: current.declaredAmount || view.totalAmount,
+          }));
+        }
+      } catch {
+        // A stale or corrupt cache entry must not block loading from the API.
+      }
+    }
     if (!effective) {
       setError('Falta el enlace de acceso al pedido. Revisa el correo de confirmación.');
       return;
@@ -139,7 +156,18 @@ export default function OrderPage(): ReactNode {
           <Notice kind="success">{success}</Notice>
         </div>
       ) : null}
-      {!order && !error ? <Loading /> : null}
+      {!order && !error ? (
+        <p
+          className="text-ink-muted mt-8 flex items-center justify-center gap-2 py-12 text-sm"
+          role="status"
+        >
+          <span
+            aria-hidden="true"
+            className="border-accent h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"
+          />
+          Confirmando tu reserva…
+        </p>
+      ) : null}
 
       {order ? (
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-start">
