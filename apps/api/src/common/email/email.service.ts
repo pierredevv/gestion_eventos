@@ -68,6 +68,7 @@ export class EmailService {
         text: message.text,
         html: message.html,
       }),
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) {
@@ -81,6 +82,9 @@ export class EmailService {
       host: this.config.get('SMTP_HOST', { infer: true }),
       port: this.config.get('SMTP_PORT', { infer: true }),
       secure: this.config.get('SMTP_SECURE', { infer: true }),
+      connectionTimeout: 5_000,
+      greetingTimeout: 5_000,
+      socketTimeout: 10_000,
       auth: {
         user: this.config.get('SMTP_USER', { infer: true }),
         pass: this.config.get('SMTP_PASSWORD', { infer: true }),

@@ -255,16 +255,16 @@ export class OrdersService {
       },
     });
 
-    // Best effort: never fail an order because of the email provider.
-    try {
-      await this.email.send({
+    // Best effort: the response must not wait on the email provider. The
+    // notification job above is the durable delivery path, so a slow or failing
+    // SMTP server must never delay the buyer's redirect to the order page.
+    void this.email
+      .send({
         to: created.buyerEmail,
         subject: 'Tu pedido ha sido creado',
         text: `Pedido ${created.orderCode}. Completa el pago antes de ${expiresAt.toISOString()}.`,
-      });
-    } catch {
-      // The notification job above is the durable delivery path.
-    }
+      })
+      .catch(() => undefined);
 
     return {
       order: this.toView(created),
