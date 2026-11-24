@@ -201,7 +201,7 @@ export class TicketsService {
       orderCode: order.orderCode,
       eventTitle: order.event.title,
       eventStartDate: order.event.startDate.toISOString(),
-      eventLocation: order.event.location,
+      eventLocation: order.event.location ?? 'Por definir',
       tickets: tickets.map((ticket) => this.toView(ticket)),
     };
   }
@@ -274,7 +274,7 @@ export class TicketsService {
       eventId: ticket.order.eventId,
       eventTitle: ticket.order.event.title,
       eventStartDate: ticket.order.event.startDate.toISOString(),
-      eventLocation: ticket.order.event.location,
+      eventLocation: ticket.order.event.location ?? 'Por definir',
       issuedAt: ticket.issuedAt.toISOString(),
       usedAt: ticket.usedAt?.toISOString() ?? null,
       qrPayload: decryptToken(ticket.tokenCiphertext, this.encryptionKey()),

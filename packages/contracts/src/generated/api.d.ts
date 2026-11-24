@@ -722,9 +722,9 @@ export interface components {
             slug?: string;
             description: string;
             /** @example Teatro Municipal */
-            location: string;
+            location?: string | null;
             /** @example Av. Colón 123, La Paz */
-            address: string;
+            address?: string | null;
             /** @default America/La_Paz */
             timezone: string;
             /** @default BOB */
@@ -746,8 +746,8 @@ export interface components {
             title?: string;
             slug?: string;
             description?: string;
-            location?: string;
-            address?: string;
+            location?: string | null;
+            address?: string | null;
             timezone?: string;
             currency?: string;
             capacity?: Record<string, never> | null;
@@ -1163,7 +1163,11 @@ export interface operations {
     };
     EventsController_list: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                limit?: number;
+                status?: "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
+            };
             header?: never;
             path?: never;
             cookie?: never;

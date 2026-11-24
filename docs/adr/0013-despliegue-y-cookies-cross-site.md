@@ -6,8 +6,8 @@
 
 ## Contexto
 
-La web se publica en Vercel y la API en Railway. Sus orígenes tienen dominios registrables
-distintos (`vercel.app` frente a `railway.app`), por lo que el navegador los considera **sitios
+La web se publica en Vercel y la API en Render. Sus orígenes tienen dominios registrables
+distintos (`vercel.app` frente a `onrender.com`), por lo que el navegador los considera **sitios
 distintos**. Las cookies con `SameSite=Lax` no se envían en peticiones `fetch` entre sitios: la
 sesión del panel administrativo quedaría inutilizable aunque CORS permitiera la petición.
 

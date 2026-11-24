@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/decorators/auth.decorators';
-import type { ListEventsDto } from './dto/list-events.dto';
+import { ListEventsDto } from './dto/list-events.dto';
 import type { PaginatedEvents, EventView } from './events.types';
 import { EventsService } from './events.service';
 

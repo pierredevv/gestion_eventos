@@ -19,10 +19,11 @@ packages/
   contracts/  Tipos compartidos generados desde OpenAPI
 docs/
   adr/        Decisiones de arquitectura
-  deployment.md  Guía de despliegue en Vercel + Railway
+  deployment.md  Guía de despliegue en Vercel + Render
 ```
 
-`Dockerfile.api`, `railway.json` y `vercel.json` contienen la configuración de producción.
+`Dockerfile.api` y `vercel.json` definen la imagen y el build; los servicios se configuran en Render
+y Vercel. `railway.json` queda solo como referencia histórica.
 
 ## Requisitos
 
@@ -55,8 +56,10 @@ Todo se configura en `.env` (ignorado por git). `.env.example` documenta cada va
 
 Reglas importantes con Supabase:
 
-1. `DATABASE_URL` usa el **pooler** (puerto 6543) con `pgbouncer=true&connection_limit=1`.
-2. `DIRECT_URL` usa la conexión directa (puerto 5432) y solo se emplea para migraciones.
+1. En Render, `DATABASE_URL` usa el **session pooler** IPv4 (puerto 5432). El transaction pooler
+   (puerto 6543) también es válido si se añade `pgbouncer=true&connection_limit=1`.
+2. `DIRECT_URL` usa la conexión directa (puerto 5432, IPv6) y solo se emplea para migraciones desde
+   una máquina con acceso IPv6.
 3. `SUPABASE_SERVICE_ROLE_KEY` nunca se expone al navegador ni se prefija con `NEXT_PUBLIC_`.
 4. Prisma se conecta por TCP con el rol de base de datos. La autorización vive en NestJS y no
    depende de RLS.
@@ -108,16 +111,19 @@ Ver `docs/adr/`:
 
 ## Despliegue
 
-Web en Vercel y API en Railway, sin dominio propio. La guía completa está en
+Web en Vercel (`https://gestion-eventos-pi.vercel.app`) y API en Render
+(`https://gestion-eventos-api-km0n.onrender.com`), sin dominio propio. La guía completa está en
 [`docs/deployment.md`](docs/deployment.md). Puntos críticos:
 
-- `DATABASE_URL` usa el pooler de transacciones; `DIRECT_URL` (conexión directa) solo para migraciones.
+- En Render, `DATABASE_URL` usa el session pooler IPv4; `DIRECT_URL` (conexión directa IPv6) solo
+  para migraciones ejecutadas fuera de Render.
 - Web y API están en sitios distintos: en producción `COOKIE_SAME_SITE=none` y `WEB_ORIGIN` debe ser
   la URL exacta de Vercel. `Origin`, CORS y el token CSRF se validan en cada mutación. La API expone
   el token CSRF en la cabecera `X-CSRF-Token` porque la cookie pertenece a otro dominio.
 - `NEXT_PUBLIC_PAYMENT_QR_URL` apunta a la imagen estática del QR bancario de la organización; el
   sistema nunca genera ese QR.
-- El contenedor de la API aplica migraciones y ejecuta un solo worker de notificaciones: usa una réplica.
+- El contenedor de la API no ejecuta migraciones: solo arranca NestJS y un worker de notificaciones.
+  Las migraciones se aplican por separado con `DIRECT_URL`; usa una sola réplica.
 
 ## Estado
 

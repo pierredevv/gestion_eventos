@@ -230,8 +230,10 @@ export default function EventDetailPage(): ReactNode {
             </div>
             <div>
               <dt className="text-ink-muted text-xs uppercase">Lugar</dt>
-              <dd className="mt-1 text-sm font-medium">{event.location}</dd>
-              <dd className="text-ink-muted mt-1 text-xs">{event.address}</dd>
+              <dd className="mt-1 text-sm font-medium">{event.location ?? 'Por definir'}</dd>
+              {event.address ? (
+                <dd className="text-ink-muted mt-1 text-xs">{event.address}</dd>
+              ) : null}
             </div>
           </dl>
           <h2 className="mt-10 text-lg font-semibold">Tipos de entrada</h2>

@@ -42,6 +42,11 @@ function iso(value: string): string {
   return value ? new Date(value).toISOString() : '';
 }
 
+function optionalText(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
 function EventForm({ onCreated }: { onCreated: () => void }): ReactNode {
   const [form, setForm] = useState(emptyEvent);
   const [error, setError] = useState('');
@@ -54,8 +59,6 @@ function EventForm({ onCreated }: { onCreated: () => void }): ReactNode {
     if (
       form.title.trim().length < 2 ||
       !form.description.trim() ||
-      form.location.trim().length < 2 ||
-      form.address.trim().length < 2 ||
       !form.startDate ||
       !form.endDate ||
       !form.registrationStart ||
@@ -69,8 +72,8 @@ function EventForm({ onCreated }: { onCreated: () => void }): ReactNode {
       await apiSend('/admin/events', 'POST', {
         title: form.title,
         description: form.description,
-        location: form.location,
-        address: form.address,
+        location: optionalText(form.location),
+        address: optionalText(form.address),
         ...(form.capacity ? { capacity: Number(form.capacity) } : {}),
         startDate: iso(form.startDate),
         endDate: iso(form.endDate),
@@ -101,20 +104,26 @@ function EventForm({ onCreated }: { onCreated: () => void }): ReactNode {
             onChange={(e) => set('title', e.target.value)}
           />
         </Field>
-        <Field label="Lugar">
+        <Field label="Lugar (opcional)">
           <input
             className={inputClass}
             value={form.location}
+            placeholder="Por definir"
             onChange={(e) => set('location', e.target.value)}
           />
         </Field>
-        <Field label="Dirección">
+        <Field label="Dirección (opcional)">
           <input
             className={inputClass}
             value={form.address}
+            placeholder="Por definir"
             onChange={(e) => set('address', e.target.value)}
           />
         </Field>
+        <p className="text-ink-muted text-xs sm:col-span-2">
+          Déjalos vacíos si aún no están confirmados; se mostrarán como “Por definir” y podrás
+          editarlos después.
+        </p>
         <Field label="Capacidad total (opcional)">
           <input
             className={inputClass}
@@ -308,6 +317,31 @@ function TicketTypeForm({ eventId, onDone }: { eventId: string; onDone: () => vo
 function EventCard({ event, onChange }: { event: EventView; onChange: () => void }): ReactNode {
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState('');
+  const [venue, setVenue] = useState({
+    location: event.location ?? '',
+    address: event.address ?? '',
+  });
+  const [savingVenue, setSavingVenue] = useState(false);
+
+  useEffect(() => {
+    setVenue({ location: event.location ?? '', address: event.address ?? '' });
+  }, [event.location, event.address]);
+
+  async function saveVenue(): Promise<void> {
+    setError('');
+    setSavingVenue(true);
+    try {
+      await apiSend(`/admin/events/${event.id}`, 'PATCH', {
+        location: optionalText(venue.location),
+        address: optionalText(venue.address),
+      });
+      onChange();
+    } catch (cause) {
+      setError(cause instanceof ApiRequestError ? cause.message : 'No se pudo actualizar el lugar');
+    } finally {
+      setSavingVenue(false);
+    }
+  }
 
   async function action(name: 'publish' | 'cancel' | 'complete'): Promise<void> {
     setError('');
@@ -338,8 +372,8 @@ function EventCard({ event, onChange }: { event: EventView; onChange: () => void
             <Badge status={event.status} />
           </div>
           <p className="text-ink-muted mt-1 text-xs">
-            {event.location} · {event.ticketTypes.length} tipos de entrada · {event.totalAvailable}{' '}
-            disponibles
+            {event.location ?? 'Por definir'} · {event.ticketTypes.length} tipos de entrada ·{' '}
+            {event.totalAvailable} disponibles
           </p>
         </div>
         <button className={secondaryButtonClass} onClick={() => setExpanded(!expanded)}>
@@ -353,7 +387,36 @@ function EventCard({ event, onChange }: { event: EventView; onChange: () => void
       ) : null}
       {expanded ? (
         <div className="border-line mt-5 border-t pt-5">
-          <h4 className="text-sm font-semibold">Tipos de entrada</h4>
+          <h4 className="text-sm font-semibold">Lugar y dirección</h4>
+          <p className="text-ink-muted mt-1 text-xs">
+            Vacío se muestra como “Por definir”. Puedes completarlo cuando lo confirmes.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <Field label="Lugar">
+              <input
+                className={inputClass}
+                value={venue.location}
+                placeholder="Por definir"
+                onChange={(e) => setVenue((current) => ({ ...current, location: e.target.value }))}
+              />
+            </Field>
+            <Field label="Dirección">
+              <input
+                className={inputClass}
+                value={venue.address}
+                placeholder="Por definir"
+                onChange={(e) => setVenue((current) => ({ ...current, address: e.target.value }))}
+              />
+            </Field>
+          </div>
+          <button
+            className={`${secondaryButtonClass} mt-3`}
+            disabled={savingVenue}
+            onClick={() => void saveVenue()}
+          >
+            {savingVenue ? 'Guardando…' : 'Guardar lugar y dirección'}
+          </button>
+          <h4 className="mt-6 text-sm font-semibold">Tipos de entrada</h4>
           {event.ticketTypes.length === 0 ? (
             <p className="text-ink-muted mt-2 text-sm">Aún no hay tipos de entrada.</p>
           ) : null}

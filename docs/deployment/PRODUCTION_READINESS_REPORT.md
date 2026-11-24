@@ -7,6 +7,11 @@
 **Supabase reutilizado:** `aofqmxnvcbijynfdzhvf` (producción, sin borrado de datos)  
 **Dictamen:** **NOT READY** — la API ya arranca, pero la base de datos rechaza las credenciales; no se declara producción operativa.
 
+> **Actualización 2026-11-24 19:23 UTC:** las credenciales vigentes y el session pooler IPv4 ya
+> funcionan: `/api/v1/health/ready` responde 200 y el login administrativo responde 200. Ver
+> [`DB_CONNECTION_INCIDENT_RESOLUTION_REPORT.md`](DB_CONNECTION_INCIDENT_RESOLUTION_REPORT.md). Este
+> informe conserva el estado histórico del momento en que se emitió.
+
 ---
 
 ## 1. Resumen ejecutivo
@@ -26,17 +31,17 @@ El bloqueo actual es la **contraseña de PostgreSQL**: la API alcanza el host de
 
 ## 2. Estado de infraestructura
 
-| Componente | Referencia | Estado |
-| --- | --- | --- |
-| Repositorio | `pierredevv/gestion_eventos`, rama `master` | PASS — commit `6bc1a83` publicado |
-| Render API | `gestion-eventos-api` / `srv-dc2sukp42hec73938ou0` | PASS parcial — deploy `dep-dc2tjkrncjis73dv4n60` `live`; Nest iniciado sin errores de configuración |
-| Render URL | `https://gestion-eventos-api-km0n.onrender.com` | FAIL funcional — `/api/v1/health/ready` devuelve 503 por base de datos |
-| Vercel web | `gestion-eventos` / `prj_o7aFmDDNx9F6qfjttIk4yRxsHpfV` | PASS — `dpl_FEw7iuQaFLQueNm8nq2nu5osc11A` READY |
-| Vercel URL | `https://gestion-eventos-pi.vercel.app` | PASS — HTTP 200 |
-| Supabase DB | `aofqmxnvcbijynfdzhvf`, región `us-east-2`, `ACTIVE_HEALTHY` | BLOCKED — credencial PostgreSQL inválida |
-| Supabase Storage | Buckets `receipts` y `ticket-assets` | PASS — creados privados |
-| Supabase CLI | v3.4.0, login completado por el usuario | PASS — `supabase whoami` autenticado |
-| Brevo SMTP | `smtp-relay.brevo.com:587` | PASS — `SMTP_AUTH_OK_IPV4` |
+| Componente       | Referencia                                                   | Estado                                                                                              |
+| ---------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Repositorio      | `pierredevv/gestion_eventos`, rama `master`                  | PASS — commit `6bc1a83` publicado                                                                   |
+| Render API       | `gestion-eventos-api` / `srv-dc2sukp42hec73938ou0`           | PASS parcial — deploy `dep-dc2tjkrncjis73dv4n60` `live`; Nest iniciado sin errores de configuración |
+| Render URL       | `https://gestion-eventos-api-km0n.onrender.com`              | FAIL funcional — `/api/v1/health/ready` devuelve 503 por base de datos                              |
+| Vercel web       | `gestion-eventos` / `prj_o7aFmDDNx9F6qfjttIk4yRxsHpfV`       | PASS — `dpl_FEw7iuQaFLQueNm8nq2nu5osc11A` READY                                                     |
+| Vercel URL       | `https://gestion-eventos-pi.vercel.app`                      | PASS — HTTP 200                                                                                     |
+| Supabase DB      | `aofqmxnvcbijynfdzhvf`, región `us-east-2`, `ACTIVE_HEALTHY` | BLOCKED — credencial PostgreSQL inválida                                                            |
+| Supabase Storage | Buckets `receipts` y `ticket-assets`                         | PASS — creados privados                                                                             |
+| Supabase CLI     | v3.4.0, login completado por el usuario                      | PASS — `supabase whoami` autenticado                                                                |
+| Brevo SMTP       | `smtp-relay.brevo.com:587`                                   | PASS — `SMTP_AUTH_OK_IPV4`                                                                          |
 
 ---
 
@@ -56,25 +61,25 @@ Esa evidencia es local/aislada; no equivale a prueba de producción.
 
 ## 4. Verificaciones de esta fase
 
-| Verificación | Estado | Evidencia |
-| --- | --- | --- |
-| Push a GitHub | PASS | `git ls-remote origin master` = `6bc1a83` |
-| Fuentes Storage en Git | PASS | Commit `f175564`; build de Render superó TypeScript |
-| Entrypoint sin migraciones | PASS | Commit `e64d2f7`; logs sin `P1001` por `prisma migrate deploy` |
-| Configuración Vercel | PASS | Commit `08d2252`; deploy READY y HTTP 200 |
-| Buckets privados Supabase | PASS | `receipts` y `ticket-assets`, `public=false` |
-| Login Supabase CLI | PASS | Usuario completó el flujo; `supabase whoami` devolvió identidad autenticada |
-| Service role en Render | PASS | API inició sin `SUPABASE_SERVICE_ROLE_KEY is required in production` |
-| Arranque de Nest en Render | PASS | Logs: `Nest application successfully started`, `API listening on http://localhost:4000/api/v1` |
-| SMTP key Brevo cargada | PASS | `SMTP_PASSWORD` reemplazado por clave `xsmtpsib-...` |
-| Autenticación SMTP | PASS | `nodemailer.verify()` → `SMTP_AUTH_OK_IPV4` |
-| CORS: origen hostil | PASS | `POST /auth/login` con `Origin: https://evil.example` → HTTP 403 |
-| CSRF cookie | PASS | Cookie `csrf_token` presente tras `GET /health` |
-| `/health` | PASS | HTTP 200 |
-| `/health/ready` | FAIL | HTTP 503; `checks.database.ok=false`, `error=Database unavailable` |
-| Login admin real | FAIL | HTTP 500; logs de Render muestran error de autenticación PostgreSQL |
-| Catálogo, orden, comprobante, aprobación, tickets, check-in | NOT TESTED | Bloqueado por base de datos |
-| Correo real | NO VERIFICADO | SMTP autenticado; aún no se envía correo de prueba |
+| Verificación                                                | Estado        | Evidencia                                                                                      |
+| ----------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------- |
+| Push a GitHub                                               | PASS          | `git ls-remote origin master` = `6bc1a83`                                                      |
+| Fuentes Storage en Git                                      | PASS          | Commit `f175564`; build de Render superó TypeScript                                            |
+| Entrypoint sin migraciones                                  | PASS          | Commit `e64d2f7`; logs sin `P1001` por `prisma migrate deploy`                                 |
+| Configuración Vercel                                        | PASS          | Commit `08d2252`; deploy READY y HTTP 200                                                      |
+| Buckets privados Supabase                                   | PASS          | `receipts` y `ticket-assets`, `public=false`                                                   |
+| Login Supabase CLI                                          | PASS          | Usuario completó el flujo; `supabase whoami` devolvió identidad autenticada                    |
+| Service role en Render                                      | PASS          | API inició sin `SUPABASE_SERVICE_ROLE_KEY is required in production`                           |
+| Arranque de Nest en Render                                  | PASS          | Logs: `Nest application successfully started`, `API listening on http://localhost:4000/api/v1` |
+| SMTP key Brevo cargada                                      | PASS          | `SMTP_PASSWORD` reemplazado por clave `xsmtpsib-...`                                           |
+| Autenticación SMTP                                          | PASS          | `nodemailer.verify()` → `SMTP_AUTH_OK_IPV4`                                                    |
+| CORS: origen hostil                                         | PASS          | `POST /auth/login` con `Origin: https://evil.example` → HTTP 403                               |
+| CSRF cookie                                                 | PASS          | Cookie `csrf_token` presente tras `GET /health`                                                |
+| `/health`                                                   | PASS          | HTTP 200                                                                                       |
+| `/health/ready`                                             | FAIL          | HTTP 503; `checks.database.ok=false`, `error=Database unavailable`                             |
+| Login admin real                                            | FAIL          | HTTP 500; logs de Render muestran error de autenticación PostgreSQL                            |
+| Catálogo, orden, comprobante, aprobación, tickets, check-in | NOT TESTED    | Bloqueado por base de datos                                                                    |
+| Correo real                                                 | NO VERIFICADO | SMTP autenticado; aún no se envía correo de prueba                                             |
 
 ---
 

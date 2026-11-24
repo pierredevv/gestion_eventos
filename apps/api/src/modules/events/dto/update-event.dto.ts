@@ -14,6 +14,12 @@ import {
 const trim = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() : value;
 
+const trimToNull = ({ value }: { value: unknown }): unknown => {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') return value;
+  return value.trim().length === 0 ? null : value.trim();
+};
+
 export class UpdateEventDto {
   @ApiPropertyOptional()
   @IsOptional()
@@ -38,19 +44,19 @@ export class UpdateEventDto {
   @Transform(trim)
   description?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String, nullable: true })
   @IsOptional()
   @IsString()
   @Length(2, 180)
-  @Transform(trim)
-  location?: string;
+  @Transform(trimToNull)
+  location?: string | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: String, nullable: true })
   @IsOptional()
   @IsString()
   @Length(2, 255)
-  @Transform(trim)
-  address?: string;
+  @Transform(trimToNull)
+  address?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

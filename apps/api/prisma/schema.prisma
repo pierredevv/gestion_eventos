@@ -195,8 +195,8 @@ model Event {
   title             String      @db.VarChar(180)
   description       String      @db.Text
   coverImageKey     String?     @map("cover_image") @db.VarChar(255)
-  location          String      @db.VarChar(180)
-  address           String      @db.VarChar(255)
+  location          String?     @db.VarChar(180)
+  address           String?     @db.VarChar(255)
   timezone          String      @default("America/La_Paz") @db.VarChar(64)
   currency          String      @default("BOB") @db.Char(3)
   capacity          Int?

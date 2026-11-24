@@ -26,8 +26,8 @@ export interface EventView {
   slug: string;
   title: string;
   description: string;
-  location: string;
-  address: string;
+  location: string | null;
+  address: string | null;
   timezone: string;
   currency: string;
   capacity: number | null;

@@ -9,22 +9,27 @@
 **Nota:** este informe se publica en un commit posterior de solo documentación; el código desplegado no cambió.  
 **Dictamen:** **NOT READY — despliegue parcial.** La web está publicada y la API está desplegada, pero la conexión de la aplicación a PostgreSQL es inválida. El evento **NEXT LEVEL no fue creado**: el sistema existente exige campos que el usuario ordenó dejar pendientes y no permite registrar organizador, contacto, programa ni eslogan sin cambios de sistema.
 
-> Clasificación usada: **PASS** = verificado con evidencia; **FAIL** = verificado y negativo; **BLOCKED** = impedimento real que requiere acción/autorización; **NOT TESTED** = no ejecutado.
+> **Actualización 2026-11-24 19:23 UTC:** el bloqueo de conexión a PostgreSQL quedó resuelto mediante
+> el session pooler IPv4 de Supabase. Ver
+> [`DB_CONNECTION_INCIDENT_RESOLUTION_REPORT.md`](DB_CONNECTION_INCIDENT_RESOLUTION_REPORT.md).
+> El resto del dictamen de este informe (evento NEXT LEVEL no creado) se mantiene.
+
+> Clasificación usada: **PASS** = verificado con evidencia; **FAIL** = verificado y negativo; **BLOCKED** = impedimento real que requiere acción/autorizaciónn; **NOT TESTED** = no ejecutado.
 
 ---
 
 ## 1. Infraestructura utilizada
 
-| Componente | Referencia | Estado | Clasificación |
-| --- | --- | --- | --- |
-| GitHub | `pierredevv/gestion_eventos`, rama `master` | Sin cambios sin commitear; HEAD `d044fc8` | PASS |
-| Vercel (web) | Proyecto `gestion-eventos` / `prj_o7aFmDDNx9F6qfjttIk4yRxsHpfV`, team `team_573tpVpu53whMEZIAx4WV1VI` | Deploy `dpl_926EfXzqEgvtDzToPfHSBVPcMjDC` `READY` | PASS |
-| Render (API) | `gestion-eventos-api` / `srv-dc2sukp42hec73938ou0`, plan `free`, región `oregon`, Docker | Servicio `live`; arranque de Nest correcto | PASS (despliegue) / FAIL (operación) |
-| Railway | No utilizado; reemplazado por Render por decisión del usuario | Sin servicio, sin configuración, sin dependencia | NOT TESTED (fuera de alcance) |
-| Supabase (DB) | Proyecto `aofqmxnvcbijynfdzhvf`, región `us-east-2`, `ACTIVE_HEALTHY` | Acceso MCP/SQL PASS; acceso desde la app FAIL | PASS / FAIL |
-| Supabase Storage | Buckets privados `receipts` y `ticket-assets` | Existen y son privados | PASS (existencia) / NOT TESTED (subida real) |
-| Brevo SMTP | `smtp-relay.brevo.com:587`, remitente verificado `pierreelpro19@gmail.com` | `nodemailer.verify()` → `SMTP_AUTH_OK_IPV4` | PASS (autenticación) / NOT TESTED (envío real) |
-| Supabase CLI | v3.4.0, login completado por el usuario | `supabase whoami` autenticado | PASS |
+| Componente       | Referencia                                                                                            | Estado                                            | Clasificación                                  |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------- |
+| GitHub           | `pierredevv/gestion_eventos`, rama `master`                                                           | Sin cambios sin commitear; HEAD `d044fc8`         | PASS                                           |
+| Vercel (web)     | Proyecto `gestion-eventos` / `prj_o7aFmDDNx9F6qfjttIk4yRxsHpfV`, team `team_573tpVpu53whMEZIAx4WV1VI` | Deploy `dpl_926EfXzqEgvtDzToPfHSBVPcMjDC` `READY` | PASS                                           |
+| Render (API)     | `gestion-eventos-api` / `srv-dc2sukp42hec73938ou0`, plan `free`, región `oregon`, Docker              | Servicio `live`; arranque de Nest correcto        | PASS (despliegue) / FAIL (operación)           |
+| Railway          | No utilizado; reemplazado por Render por decisión del usuario                                         | Sin servicio, sin configuración, sin dependencia  | NOT TESTED (fuera de alcance)                  |
+| Supabase (DB)    | Proyecto `aofqmxnvcbijynfdzhvf`, región `us-east-2`, `ACTIVE_HEALTHY`                                 | Acceso MCP/SQL PASS; acceso desde la app FAIL     | PASS / FAIL                                    |
+| Supabase Storage | Buckets privados `receipts` y `ticket-assets`                                                         | Existen y son privados                            | PASS (existencia) / NOT TESTED (subida real)   |
+| Brevo SMTP       | `smtp-relay.brevo.com:587`, remitente verificado `pierreelpro19@gmail.com`                            | `nodemailer.verify()` → `SMTP_AUTH_OK_IPV4`       | PASS (autenticación) / NOT TESTED (envío real) |
+| Supabase CLI     | v3.4.0, login completado por el usuario                                                               | `supabase whoami` autenticado                     | PASS                                           |
 
 No se creó un proyecto nuevo, no se borraron datos, no se aplicaron migraciones destructivas y no se ejecutaron operaciones financieras reales.
 
@@ -32,14 +37,14 @@ No se creó un proyecto nuevo, no se borraron datos, no se aplicaron migraciones
 
 ## 2. URLs de producción
 
-| Uso | URL |
-| --- | --- |
-| Web pública | https://gestion-eventos-pi.vercel.app |
-| API base | https://gestion-eventos-api-km0n.onrender.com/api/v1 |
-| Documentación OpenAPI | https://gestion-eventos-api-km0n.onrender.com/api/docs |
-| Health simple | https://gestion-eventos-api-km0n.onrender.com/api/v1/health |
-| Health readiness | https://gestion-eventos-api-km0n.onrender.com/api/v1/health/ready |
-| Dashboard Render | https://dashboard.render.com/web/srv-dc2sukp42hec73938ou0 |
+| Uso                   | URL                                                               |
+| --------------------- | ----------------------------------------------------------------- |
+| Web pública           | https://gestion-eventos-pi.vercel.app                             |
+| API base              | https://gestion-eventos-api-km0n.onrender.com/api/v1              |
+| Documentación OpenAPI | https://gestion-eventos-api-km0n.onrender.com/api/docs            |
+| Health simple         | https://gestion-eventos-api-km0n.onrender.com/api/v1/health       |
+| Health readiness      | https://gestion-eventos-api-km0n.onrender.com/api/v1/health/ready |
+| Dashboard Render      | https://dashboard.render.com/web/srv-dc2sukp42hec73938ou0         |
 
 Verificación: web `HTTP 200`; `/health` `HTTP 200`; `/health/ready` `HTTP 503`.
 
@@ -47,13 +52,13 @@ Verificación: web `HTTP 200`; `/health` `HTTP 200`; `/health/ready` `HTTP 503`.
 
 ## 3. Estado de Vercel
 
-| Verificación | Resultado | Clasificación |
-| --- | --- | --- |
-| Deploy de `d044fc8` | `dpl_926EfXzqEgvtDzToPfHSBVPcMjDC`, estado `READY`, target `production` | PASS |
-| URL pública | `https://gestion-eventos-pi.vercel.app` responde `HTTP 200` y renderiza la web | PASS |
-| Build | `pnpm build`, `outputDirectory=.next`, `rootDirectory=apps/web` | PASS |
-| Variables públicas inyectadas | `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_API_DOCS_URL`, `NEXT_PUBLIC_API_HEALTH_URL`, `NEXT_PUBLIC_RESERVATION_MINUTES=25` | PASS |
-| QR de pago | `NEXT_PUBLIC_PAYMENT_QR_URL` no configurado | BLOCKED |
+| Verificación                  | Resultado                                                                                                                  | Clasificación |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| Deploy de `d044fc8`           | `dpl_926EfXzqEgvtDzToPfHSBVPcMjDC`, estado `READY`, target `production`                                                    | PASS          |
+| URL pública                   | `https://gestion-eventos-pi.vercel.app` responde `HTTP 200` y renderiza la web                                             | PASS          |
+| Build                         | `pnpm build`, `outputDirectory=.next`, `rootDirectory=apps/web`                                                            | PASS          |
+| Variables públicas inyectadas | `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_API_DOCS_URL`, `NEXT_PUBLIC_API_HEALTH_URL`, `NEXT_PUBLIC_RESERVATION_MINUTES=25` | PASS          |
+| QR de pago                    | `NEXT_PUBLIC_PAYMENT_QR_URL` no configurado                                                                                | BLOCKED       |
 
 ---
 
@@ -65,19 +70,19 @@ Verificación: web `HTTP 200`; `/health` `HTTP 200`; `/health/ready` `HTTP 503`.
 
 ## 5. Estado de Supabase
 
-| Verificación | Resultado | Clasificación |
-| --- | --- | --- |
-| Proyecto | `aofqmxnvcbijynfdzhvf`, `ACTIVE_HEALTHY`, PostgreSQL 17.12 | PASS |
-| Consulta SQL vía MCP | `select 1` → OK | PASS |
-| Host directo | `db.aofqmxnvcbijynfdzhvf.supabase.co` publica solo AAAA IPv6 (`2600:1f16:...`), sin registro A | FAIL para Render IPv4-only |
-| Contraseña PostgreSQL provista | `postgresql://postgres:***@db.aofq...:5432/postgres` → Postgres responde `Authentication failed against database server, the provided database credentials for 'postgres' are not valid` | FAIL |
-| Pooler IPv4 `aws-0-us-east-2` | `tenant/user postgres.aofqmxnvcbijynfdzhvf not found` | FAIL |
-| Pooler IPv4 `aws-1-us-east-2` | Autenticación rechazada con la misma contraseña | FAIL |
-| Intento de alinear la contraseña vía SQL | `alter role postgres ...` → `42501: permission denied to alter privileged roles` | BLOCKED |
-| Buckets Storage | `receipts`, `ticket-assets`, ambos `public=false` | PASS |
-| RLS | 19/19 tablas en `public` con RLS, 0 políticas, 0 grants `anon`/`authenticated` (evidencia previa) | PASS |
-| Schema `test` | Conservado, sin privilegios públicos; usado solo en QA local | PASS |
-| Datos | 0 eventos, 0 tipos de entrada, 0 órdenes, 0 tickets, 0 comprobantes | PASS (sin datos creados) |
+| Verificación                             | Resultado                                                                                                                                                                                | Clasificación              |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| Proyecto                                 | `aofqmxnvcbijynfdzhvf`, `ACTIVE_HEALTHY`, PostgreSQL 17.12                                                                                                                               | PASS                       |
+| Consulta SQL vía MCP                     | `select 1` → OK                                                                                                                                                                          | PASS                       |
+| Host directo                             | `db.aofqmxnvcbijynfdzhvf.supabase.co` publica solo AAAA IPv6 (`2600:1f16:...`), sin registro A                                                                                           | FAIL para Render IPv4-only |
+| Contraseña PostgreSQL provista           | `postgresql://postgres:***@db.aofq...:5432/postgres` → Postgres responde `Authentication failed against database server, the provided database credentials for 'postgres' are not valid` | FAIL                       |
+| Pooler IPv4 `aws-0-us-east-2`            | `tenant/user postgres.aofqmxnvcbijynfdzhvf not found`                                                                                                                                    | FAIL                       |
+| Pooler IPv4 `aws-1-us-east-2`            | Autenticación rechazada con la misma contraseña                                                                                                                                          | FAIL                       |
+| Intento de alinear la contraseña vía SQL | `alter role postgres ...` → `42501: permission denied to alter privileged roles`                                                                                                         | BLOCKED                    |
+| Buckets Storage                          | `receipts`, `ticket-assets`, ambos `public=false`                                                                                                                                        | PASS                       |
+| RLS                                      | 19/19 tablas en `public` con RLS, 0 políticas, 0 grants `anon`/`authenticated` (evidencia previa)                                                                                        | PASS                       |
+| Schema `test`                            | Conservado, sin privilegios públicos; usado solo en QA local                                                                                                                             | PASS                       |
+| Datos                                    | 0 eventos, 0 tipos de entrada, 0 órdenes, 0 tickets, 0 comprobantes                                                                                                                      | PASS (sin datos creados)   |
 
 La base de datos **sí responde** a consultas administrativas por MCP; **no acepta** las credenciales configuradas en la aplicación. No es un fallo de código.
 
@@ -85,18 +90,18 @@ La base de datos **sí responde** a consultas administrativas por MCP; **no acep
 
 ## 6. Conexiones verificadas
 
-| Conexión | Evidencia | Clasificación |
-| --- | --- | --- |
-| Web → API (HTTP) | `NEXT_PUBLIC_API_BASE_URL` apunta a Render; `/api/v1/health` respondió `200` | PASS |
-| Web → API (flujo funcional) | `/health/ready` `503`; `/auth/login` `500` por PostgreSQL | FAIL |
-| Render → PostgreSQL | Logs: `Authentication failed ... for 'postgres'` | FAIL |
-| MCP → PostgreSQL | `select 1` → OK | PASS |
-| Render → Supabase Storage | Buckets creados; subida real no ejecutada | NOT TESTED |
-| Render → Brevo SMTP | `SMTP_AUTH_OK_IPV4` | PASS |
-| Envío real de correo | No ejecutado | NOT TESTED |
-| GitHub → Render | Deploy `dep-dc2tskd9el5s73crctg0` con commit `d044fc8` | PASS |
-| GitHub → Vercel | Deploy `dpl_926EfXzqEgvtDzToPfHSBVPcMjDC` con commit `d044fc8` | PASS |
-| CORS / CSRF | Origen hostil → `403`; cookie `csrf_token` presente; flujo de login bloqueado por DB | PASS (CORS/CSRF) / FAIL (login) |
+| Conexión                    | Evidencia                                                                            | Clasificación                   |
+| --------------------------- | ------------------------------------------------------------------------------------ | ------------------------------- |
+| Web → API (HTTP)            | `NEXT_PUBLIC_API_BASE_URL` apunta a Render; `/api/v1/health` respondió `200`         | PASS                            |
+| Web → API (flujo funcional) | `/health/ready` `503`; `/auth/login` `500` por PostgreSQL                            | FAIL                            |
+| Render → PostgreSQL         | Logs: `Authentication failed ... for 'postgres'`                                     | FAIL                            |
+| MCP → PostgreSQL            | `select 1` → OK                                                                      | PASS                            |
+| Render → Supabase Storage   | Buckets creados; subida real no ejecutada                                            | NOT TESTED                      |
+| Render → Brevo SMTP         | `SMTP_AUTH_OK_IPV4`                                                                  | PASS                            |
+| Envío real de correo        | No ejecutado                                                                         | NOT TESTED                      |
+| GitHub → Render             | Deploy `dep-dc2tskd9el5s73crctg0` con commit `d044fc8`                               | PASS                            |
+| GitHub → Vercel             | Deploy `dpl_926EfXzqEgvtDzToPfHSBVPcMjDC` con commit `d044fc8`                       | PASS                            |
+| CORS / CSRF                 | Origen hostil → `403`; cookie `csrf_token` presente; flujo de login bloqueado por DB | PASS (CORS/CSRF) / FAIL (login) |
 
 ---
 
@@ -104,30 +109,30 @@ La base de datos **sí responde** a consultas administrativas por MCP; **no acep
 
 ### Render — API
 
-| Variable | Estado | Clasificación |
-| --- | --- | --- |
-| `NODE_ENV`, `PORT` | Configuradas | PASS |
-| `WEB_ORIGIN`, `ADDITIONAL_WEB_ORIGINS`, `COOKIE_SAME_SITE` | Configuradas; CORS hostil rechazado | PASS |
-| `DEFAULT_CURRENCY=BOB`, `EVENT_TIMEZONE=America/La_Paz` | Configuradas | PASS |
-| `RESERVATION_TTL_MINUTES=25`, `MAX_RECEIPT_SIZE_MB=5` | Configuradas | PASS |
-| `SUPABASE_STORAGE_BUCKET_RECEIPTS=receipts`, `SUPABASE_STORAGE_BUCKET_TICKETS=ticket-assets` | Configuradas; buckets existen | PASS |
-| `SUPABASE_URL` | `https://aofqmxnvcbijynfdzhvf.supabase.co` | PASS |
-| `DATABASE_URL`, `DIRECT_URL` | Configuradas pero **rechazadas** por Postgres | FAIL |
-| `TOKEN_ENCRYPTION_KEY` | Configurada (valor no mostrado) | PASS |
-| `SUPABASE_SERVICE_ROLE_KEY` | Configurada; la API arranca sin error de configuración | PASS |
-| `EMAIL_PROVIDER=smtp`, `SMTP_HOST`, `SMTP_PORT=587`, `SMTP_SECURE=false`, `SMTP_USER`, `EMAIL_FROM` | Configuradas | PASS |
-| `SMTP_PASSWORD` | SMTP key Brevo cargada; autenticación verificada | PASS |
-| `NEXT_PUBLIC_PAYMENT_QR_URL` | No aplica en API; se configura en Vercel | BLOCKED |
+| Variable                                                                                            | Estado                                                 | Clasificación |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------- |
+| `NODE_ENV`, `PORT`                                                                                  | Configuradas                                           | PASS          |
+| `WEB_ORIGIN`, `ADDITIONAL_WEB_ORIGINS`, `COOKIE_SAME_SITE`                                          | Configuradas; CORS hostil rechazado                    | PASS          |
+| `DEFAULT_CURRENCY=BOB`, `EVENT_TIMEZONE=America/La_Paz`                                             | Configuradas                                           | PASS          |
+| `RESERVATION_TTL_MINUTES=25`, `MAX_RECEIPT_SIZE_MB=5`                                               | Configuradas                                           | PASS          |
+| `SUPABASE_STORAGE_BUCKET_RECEIPTS=receipts`, `SUPABASE_STORAGE_BUCKET_TICKETS=ticket-assets`        | Configuradas; buckets existen                          | PASS          |
+| `SUPABASE_URL`                                                                                      | `https://aofqmxnvcbijynfdzhvf.supabase.co`             | PASS          |
+| `DATABASE_URL`, `DIRECT_URL`                                                                        | Configuradas pero **rechazadas** por Postgres          | FAIL          |
+| `TOKEN_ENCRYPTION_KEY`                                                                              | Configurada (valor no mostrado)                        | PASS          |
+| `SUPABASE_SERVICE_ROLE_KEY`                                                                         | Configurada; la API arranca sin error de configuración | PASS          |
+| `EMAIL_PROVIDER=smtp`, `SMTP_HOST`, `SMTP_PORT=587`, `SMTP_SECURE=false`, `SMTP_USER`, `EMAIL_FROM` | Configuradas                                           | PASS          |
+| `SMTP_PASSWORD`                                                                                     | SMTP key Brevo cargada; autenticación verificada       | PASS          |
+| `NEXT_PUBLIC_PAYMENT_QR_URL`                                                                        | No aplica en API; se configura en Vercel               | BLOCKED       |
 
 ### Vercel — Web
 
-| Variable | Valor/estado | Clasificación |
-| --- | --- | --- |
-| `NEXT_PUBLIC_API_BASE_URL` | `https://gestion-eventos-api-km0n.onrender.com/api/v1` | PASS |
-| `NEXT_PUBLIC_API_DOCS_URL` | `https://gestion-eventos-api-km0n.onrender.com/api/docs` | PASS |
-| `NEXT_PUBLIC_API_HEALTH_URL` | `https://gestion-eventos-api-km0n.onrender.com/api/v1/health/ready` | PASS |
-| `NEXT_PUBLIC_RESERVATION_MINUTES` | `25` | PASS |
-| `NEXT_PUBLIC_PAYMENT_QR_URL` | **No configurada** | BLOCKED |
+| Variable                          | Valor/estado                                                        | Clasificación |
+| --------------------------------- | ------------------------------------------------------------------- | ------------- |
+| `NEXT_PUBLIC_API_BASE_URL`        | `https://gestion-eventos-api-km0n.onrender.com/api/v1`              | PASS          |
+| `NEXT_PUBLIC_API_DOCS_URL`        | `https://gestion-eventos-api-km0n.onrender.com/api/docs`            | PASS          |
+| `NEXT_PUBLIC_API_HEALTH_URL`      | `https://gestion-eventos-api-km0n.onrender.com/api/v1/health/ready` | PASS          |
+| `NEXT_PUBLIC_RESERVATION_MINUTES` | `25`                                                                | PASS          |
+| `NEXT_PUBLIC_PAYMENT_QR_URL`      | **No configurada**                                                  | BLOCKED       |
 
 Ningún secreto se muestra en este documento.
 
@@ -135,12 +140,12 @@ Ningún secreto se muestra en este documento.
 
 ## 8. Estado de migraciones
 
-| Verificación | Resultado | Clasificación |
-| --- | --- | --- |
-| Migraciones en `_prisma_migrations` | 1 total, 1 finalizada, 0 revertidas | PASS |
-| Última finalización | `2026-11-23T03:59:19Z` | PASS |
-| Ejecución automática en Render | **No**; se eliminó `prisma migrate deploy` del entrypoint | PASS |
-| Cambios de esquema en esta sesión | Ninguno | PASS |
+| Verificación                        | Resultado                                                 | Clasificación |
+| ----------------------------------- | --------------------------------------------------------- | ------------- |
+| Migraciones en `_prisma_migrations` | 1 total, 1 finalizada, 0 revertidas                       | PASS          |
+| Última finalización                 | `2026-11-23T03:59:19Z`                                    | PASS          |
+| Ejecución automática en Render      | **No**; se eliminó `prisma migrate deploy` del entrypoint | PASS          |
+| Cambios de esquema en esta sesión   | Ninguno                                                   | PASS          |
 
 ---
 
@@ -148,35 +153,35 @@ Ningún secreto se muestra en este documento.
 
 ### Evidencia previa reutilizable (`docs/testing/TESTING_REPORT.md`)
 
-| Prueba | Resultado | Clasificación |
-| --- | --- | --- |
-| `pnpm test` | 12 suites / 60 pruebas / 0 fallos | PASS |
-| `typecheck`, `lint`, `build`, `format:check`, `openapi:generate` | PASS | PASS |
-| E2E Playwright con Chrome (schema `test`) | 2 General + 1 VIP = 200.00 Bs, 3 tickets, 3 check-ins, segundo scan `409` | PASS |
-| RLS / grants | 19/19 tablas con RLS, 0 grants públicos | PASS |
+| Prueba                                                           | Resultado                                                                 | Clasificación |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------- |
+| `pnpm test`                                                      | 12 suites / 60 pruebas / 0 fallos                                         | PASS          |
+| `typecheck`, `lint`, `build`, `format:check`, `openapi:generate` | PASS                                                                      | PASS          |
+| E2E Playwright con Chrome (schema `test`)                        | 2 General + 1 VIP = 200.00 Bs, 3 tickets, 3 check-ins, segundo scan `409` | PASS          |
+| RLS / grants                                                     | 19/19 tablas con RLS, 0 grants públicos                                   | PASS          |
 
 Esta evidencia es **local y aislada**; no demuestra operación en producción.
 
 ### Pruebas de esta fase
 
-| Prueba | Resultado | Clasificación |
-| --- | --- | --- |
-| Deploy Vercel de `d044fc8` | `READY` | PASS |
-| HTTP de la web pública | `200` | PASS |
-| Deploy Render de `d044fc8` | `dep-dc2tskd9el5s73crctg0` estado `live`; arranque de Nest verificado | PASS |
-| `/health` en producción | `200` | PASS |
-| `/health/ready` en producción | `503`, `database.ok=false` | FAIL |
-| Login admin en producción | `500` | FAIL |
-| CORS con origen hostil | `403` | PASS |
-| CSRF cookie | Presente | PASS |
-| Conexión directa PostgreSQL con la credencial provista | `Authentication failed` | FAIL |
-| Conexión pooler `aws-0` | `tenant/user not found` | FAIL |
-| Conexión pooler `aws-1` | `Authentication failed` | FAIL |
-| Cambio de contraseña vía SQL | Permiso denegado | BLOCKED |
-| Autenticación SMTP Brevo | `SMTP_AUTH_OK_IPV4` | PASS |
-| Envío real de correo | No ejecutado | NOT TESTED |
-| Subida real de comprobante | No ejecutada | NOT TESTED |
-| Compra, aprobación, emisión de tickets, check-in en producción | No ejecutados | NOT TESTED / BLOCKED |
+| Prueba                                                         | Resultado                                                             | Clasificación        |
+| -------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------- |
+| Deploy Vercel de `d044fc8`                                     | `READY`                                                               | PASS                 |
+| HTTP de la web pública                                         | `200`                                                                 | PASS                 |
+| Deploy Render de `d044fc8`                                     | `dep-dc2tskd9el5s73crctg0` estado `live`; arranque de Nest verificado | PASS                 |
+| `/health` en producción                                        | `200`                                                                 | PASS                 |
+| `/health/ready` en producción                                  | `503`, `database.ok=false`                                            | FAIL                 |
+| Login admin en producción                                      | `500`                                                                 | FAIL                 |
+| CORS con origen hostil                                         | `403`                                                                 | PASS                 |
+| CSRF cookie                                                    | Presente                                                              | PASS                 |
+| Conexión directa PostgreSQL con la credencial provista         | `Authentication failed`                                               | FAIL                 |
+| Conexión pooler `aws-0`                                        | `tenant/user not found`                                               | FAIL                 |
+| Conexión pooler `aws-1`                                        | `Authentication failed`                                               | FAIL                 |
+| Cambio de contraseña vía SQL                                   | Permiso denegado                                                      | BLOCKED              |
+| Autenticación SMTP Brevo                                       | `SMTP_AUTH_OK_IPV4`                                                   | PASS                 |
+| Envío real de correo                                           | No ejecutado                                                          | NOT TESTED           |
+| Subida real de comprobante                                     | No ejecutada                                                          | NOT TESTED           |
+| Compra, aprobación, emisión de tickets, check-in en producción | No ejecutados                                                         | NOT TESTED / BLOCKED |
 
 ---
 
@@ -200,20 +205,20 @@ Esta evidencia es **local y aislada**; no demuestra operación en producción.
 
 Datos confirmados que se respetaron y NO se inventaron:
 
-| Dato | Valor confirmado | Situación en el sistema |
-| --- | --- | --- |
-| Nombre | `NEXT LEVEL` | No persistido |
-| Eslogan | `Más allá del conocimiento` | Sin campo; no persistido |
-| Descripción / subtítulo | `Desarrollo de habilidades para destacar en el mundo profesional.` | No persistido |
-| Categoría | `Ciclo de conferencias` | Sin campo; no persistido |
-| Fecha | `2026-11-27` | No persistido |
-| Horario | `10:00` a `12:30`, `America/La_Paz` | No persistido |
-| Organizador | Mozilla Bolivia | Sin campo; no persistido |
-| Contacto | `+591 73670858`, `plantarrosap@gmail.com` | Sin campo de evento; no persistido |
-| Lugar / dirección | “Por definir” | Campo obligatorio mínimo 2 caracteres; impedimento |
-| Entrada | `General`, `50 BOB`, cupo `120`, única | No persistido |
-| Programa | David Aróstegui / BREAK / Roque Bueno | Sin campo; no persistido |
-| Identidad visual | Logotipo NEXT LEVEL | Archivo no entregado; sin endpoint de carga |
+| Dato                    | Valor confirmado                                                   | Situación en el sistema                            |
+| ----------------------- | ------------------------------------------------------------------ | -------------------------------------------------- |
+| Nombre                  | `NEXT LEVEL`                                                       | No persistido                                      |
+| Eslogan                 | `Más allá del conocimiento`                                        | Sin campo; no persistido                           |
+| Descripción / subtítulo | `Desarrollo de habilidades para destacar en el mundo profesional.` | No persistido                                      |
+| Categoría               | `Ciclo de conferencias`                                            | Sin campo; no persistido                           |
+| Fecha                   | `2026-11-27`                                                       | No persistido                                      |
+| Horario                 | `10:00` a `12:30`, `America/La_Paz`                                | No persistido                                      |
+| Organizador             | Mozilla Bolivia                                                    | Sin campo; no persistido                           |
+| Contacto                | `+591 73670858`, `plantarrosap@gmail.com`                          | Sin campo de evento; no persistido                 |
+| Lugar / dirección       | “Por definir”                                                      | Campo obligatorio mínimo 2 caracteres; impedimento |
+| Entrada                 | `General`, `50 BOB`, cupo `120`, única                             | No persistido                                      |
+| Programa                | David Aróstegui / BREAK / Roque Bueno                              | Sin campo; no persistido                           |
+| Identidad visual        | Logotipo NEXT LEVEL                                                | Archivo no entregado; sin endpoint de carga        |
 
 Impedimentos exactos:
 
@@ -255,6 +260,7 @@ El sistema trata el QR como **configuración global**, no por evento:
    ```
 
    en `production` y `preview`.
+
 4. Redesplegar la web: `NEXT_PUBLIC_*` se sustituye en tiempo de build.
 5. Verificar en una orden con estado `PENDING_PAYMENT` que aparece la imagen con alt “QR bancario estático proporcionado por la organización”.
 6. Solo después de comprobar el flujo de pago con el QR real, publicar el evento y abrir ventas.
@@ -265,27 +271,27 @@ Observación: no se habilitaron ventas pagadas y no se ejecutaron pagos reales.
 
 ## 14. Estado final del despliegue
 
-| Ítem | Clasificación | Resumen |
-| --- | --- | --- |
-| Despliegue de la web | PASS | Vercel `READY`, HTTP 200 |
-| Despliegue de la API | PASS | Render `live`, Nest iniciado |
-| Operación integral de la API | FAIL | `/health/ready` 503, login 500 |
-| Conexión app → PostgreSQL | FAIL | Credencial rechazada |
-| Proyecto Supabase | PASS | Activo y consultable por MCP |
-| Migraciones | PASS | 1 aplicada, 0 revertidas |
-| CORS / CSRF | PASS | Origen hostil 403, cookie presente |
-| SMTP (autenticación) | PASS | Brevo verificado por IPv4 |
-| Correo real | NOT TESTED | Sin envío |
-| Storage (existencia) | PASS | Buckets privados creados |
-| Storage (subida real) | NOT TESTED | Sin comprobante real |
-| Compra real | BLOCKED | DB de aplicación caída; sin QR |
-| Aprobación de pagos | BLOCKED | Sin comprobante real |
-| Emisión de tickets | BLOCKED | Sin orden confirmada real |
-| Check-in real | BLOCKED | Sin ticket real |
-| Evento NEXT LEVEL | BLOCKED | Campos obligatorios no confirmados; sin campos para datos adicionales |
-| QR bancario | BLOCKED | Archivo no entregado |
-| Railway | NOT TESTED | No utilizado |
-| **Dictamen global** | **NOT READY** | Despliegue parcial, no operatividad integral |
+| Ítem                         | Clasificación | Resumen                                                               |
+| ---------------------------- | ------------- | --------------------------------------------------------------------- |
+| Despliegue de la web         | PASS          | Vercel `READY`, HTTP 200                                              |
+| Despliegue de la API         | PASS          | Render `live`, Nest iniciado                                          |
+| Operación integral de la API | FAIL          | `/health/ready` 503, login 500                                        |
+| Conexión app → PostgreSQL    | FAIL          | Credencial rechazada                                                  |
+| Proyecto Supabase            | PASS          | Activo y consultable por MCP                                          |
+| Migraciones                  | PASS          | 1 aplicada, 0 revertidas                                              |
+| CORS / CSRF                  | PASS          | Origen hostil 403, cookie presente                                    |
+| SMTP (autenticación)         | PASS          | Brevo verificado por IPv4                                             |
+| Correo real                  | NOT TESTED    | Sin envío                                                             |
+| Storage (existencia)         | PASS          | Buckets privados creados                                              |
+| Storage (subida real)        | NOT TESTED    | Sin comprobante real                                                  |
+| Compra real                  | BLOCKED       | DB de aplicación caída; sin QR                                        |
+| Aprobación de pagos          | BLOCKED       | Sin comprobante real                                                  |
+| Emisión de tickets           | BLOCKED       | Sin orden confirmada real                                             |
+| Check-in real                | BLOCKED       | Sin ticket real                                                       |
+| Evento NEXT LEVEL            | BLOCKED       | Campos obligatorios no confirmados; sin campos para datos adicionales |
+| QR bancario                  | BLOCKED       | Archivo no entregado                                                  |
+| Railway                      | NOT TESTED    | No utilizado                                                          |
+| **Dictamen global**          | **NOT READY** | Despliegue parcial, no operatividad integral                          |
 
 ---
 

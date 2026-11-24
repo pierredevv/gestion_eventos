@@ -61,7 +61,7 @@ export default function EventsPage(): ReactNode {
                 </div>
                 <h2 className="mt-4 text-lg font-semibold tracking-tight">{event.title}</h2>
                 <p className="text-ink-muted mt-2 line-clamp-2 text-sm">{event.description}</p>
-                <p className="text-ink-muted mt-4 text-xs">{event.location}</p>
+                <p className="text-ink-muted mt-4 text-xs">{event.location ?? 'Por definir'}</p>
                 <div className="border-line mt-auto flex items-center justify-between border-t pt-4 text-sm">
                   <span className="text-ink-muted">Desde</span>
                   <span className="font-semibold">
