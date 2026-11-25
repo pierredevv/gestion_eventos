@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsDateString,
   IsInt,
   IsOptional,
@@ -99,4 +100,11 @@ export class UpdateEventDto {
   @IsOptional()
   @IsDateString()
   registrationEnd?: string;
+
+  @ApiPropertyOptional({
+    description: 'Require attendee name and email at checkout',
+  })
+  @IsOptional()
+  @IsBoolean()
+  requireAttendeeDetails?: boolean;
 }

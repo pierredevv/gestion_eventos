@@ -9,8 +9,8 @@ export interface OrderItemView {
   subtotal: string;
   attendees: Array<{
     id: string;
-    fullName: string;
-    email: string;
+    fullName: string | null;
+    email: string | null;
     phone: string | null;
     documentNumber: string | null;
   }>;

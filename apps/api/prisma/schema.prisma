@@ -189,25 +189,27 @@ model VerificationToken {
 // ---------------------------------------------------------------------------
 
 model Event {
-  id                String      @id @default(uuid()) @db.Uuid
-  createdById       String      @map("created_by") @db.Uuid
-  slug              String      @unique @db.VarChar(120)
-  title             String      @db.VarChar(180)
-  description       String      @db.Text
-  coverImageKey     String?     @map("cover_image") @db.VarChar(255)
-  location          String?     @db.VarChar(180)
-  address           String?     @db.VarChar(255)
-  timezone          String      @default("America/La_Paz") @db.VarChar(64)
-  currency          String      @default("BOB") @db.Char(3)
-  capacity          Int?
-  startDate         DateTime    @map("start_date") @db.Timestamptz(6)
-  endDate           DateTime    @map("end_date") @db.Timestamptz(6)
-  registrationStart DateTime    @map("registration_start") @db.Timestamptz(6)
-  registrationEnd   DateTime    @map("registration_end") @db.Timestamptz(6)
-  status            EventStatus @default(DRAFT)
-  publishedAt       DateTime?   @map("published_at") @db.Timestamptz(6)
-  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                     String      @id @default(uuid()) @db.Uuid
+  createdById            String      @map("created_by") @db.Uuid
+  slug                   String      @unique @db.VarChar(120)
+  title                  String      @db.VarChar(180)
+  description            String      @db.Text
+  coverImageKey          String?     @map("cover_image") @db.VarChar(255)
+  location               String?     @db.VarChar(180)
+  address                String?     @db.VarChar(255)
+  timezone               String      @default("America/La_Paz") @db.VarChar(64)
+  currency               String      @default("BOB") @db.Char(3)
+  capacity               Int?
+  /// When false, attendee name and email are optional at checkout.
+  requireAttendeeDetails Boolean     @default(true) @map("require_attendee_details")
+  startDate              DateTime    @map("start_date") @db.Timestamptz(6)
+  endDate                DateTime    @map("end_date") @db.Timestamptz(6)
+  registrationStart      DateTime    @map("registration_start") @db.Timestamptz(6)
+  registrationEnd        DateTime    @map("registration_end") @db.Timestamptz(6)
+  status                 EventStatus @default(DRAFT)
+  publishedAt            DateTime?   @map("published_at") @db.Timestamptz(6)
+  createdAt              DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   createdBy   User         @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
   ticketTypes TicketType[]
@@ -310,8 +312,8 @@ model Attendee {
   id             String   @id @default(uuid()) @db.Uuid
   orderItemId    String   @map("order_item_id") @db.Uuid
   unitIndex      Int      @map("unit_index")
-  fullName       String   @map("full_name") @db.VarChar(150)
-  email          String   @db.VarChar(254)
+  fullName       String?  @map("full_name") @db.VarChar(150)
+  email          String?  @db.VarChar(254)
   phone          String?  @db.VarChar(30)
   documentNumber String?  @map("document_number") @db.VarChar(40)
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)

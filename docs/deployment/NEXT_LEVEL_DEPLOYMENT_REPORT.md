@@ -476,3 +476,63 @@ desde el entorno local sí conecta, pero Render no mantiene conexiones SMTP sali
   `pierreelpro19@gmail.com`.
 - Los jobs obsoletos `ORDER_CREATED`/`RECEIPT_RECEIVED` de las órdenes de prueba canceladas se
   cerraron para evitar reenvíos duplicados. **No se aprobó ningún pago real.**
+
+---
+
+## 19. Cronograma NEXT LEVEL, asistentes opcionales y referencia en el QR
+
+**Solicitud atendida:**
+
+- Reemplazar los nombres abreviados por `Lic. David Aróstegui Enríquez` y
+  `MSc. Ing. Roque Bueno Gallardo`.
+- Cambiar `Programa:` por `CRONOGRAMA`, con el orden indicado: `CONFERENCIAS`, charla de David,
+  `BREAK` y charla de Roque.
+- Dejar como único contacto `+591 62220214`, sin `plantarrosap@gmail.com` ni el teléfono anterior.
+- Permitir que cada evento decida si nombre y correo del asistente son obligatorios; ambos campos
+  permanecen visibles en el checkout.
+- Mostrar `+591 62220214` como referencia junto al QR de pago.
+
+**Implementación:**
+
+- Migración aditiva `20261124224500_event_optional_attendee_details`: agrega
+  `events.require_attendee_details` con default `true` y hace nullable `attendees.full_name` y
+  `attendees.email`. No se ejecutó ninguna migración destructiva.
+- DTOs `CreateEventDto` / `UpdateEventDto` y `EventView` aceptan y devuelven el flag; el contrato
+  OpenAPI se regeneró.
+- `AttendeeDto` acepta campos vacíos como omitidos, pero sigue validando nombre y correo cuando se
+  proporcionan. `OrdersService` aplica la obligatoriedad según el flag del evento y conserva la regla
+  de un asistente por entrada.
+- Orders, tickets y check-in muestran fallback al comprador cuando el asistente no tiene datos, para
+  no romper el portal ni el control de acceso.
+- El panel admin permite editar la descripción completa y el flag desde la tarjeta de cada evento.
+- El checkout marca los campos como `(opcional)` cuando el evento lo permite, sin ocultarlos.
+- El número de referencia del QR usa `NEXT_PUBLIC_PAYMENT_SUPPORT_PHONE`, con valor por defecto
+  `+591 62220214`. La variable ya quedó configurada en Vercel para `production` y `preview`.
+
+**Texto publicado para NEXT LEVEL:**
+
+```text
+NEXT LEVEL — Más allá del conocimiento
+
+Ciclo de conferencias. Desarrollo de habilidades para destacar en el mundo profesional.
+
+Organiza: Mozilla Bolivia.
+Contacto: +591 62220214
+
+CRONOGRAMA
+
+CONFERENCIAS
+
+10:00 am: Lic. David Aróstegui Enríquez
+Emprender, Innovar y Liderar
+
+BREAK
+
+11:00 am: MSc. Ing. Roque Bueno Gallardo
+Liderazgo y Estrategia en Ciberseguridad
+
+Fecha: viernes 27 de noviembre de 2026, 10:00–12:30 (America/La_Paz).
+```
+
+**Verificación local:** `prisma validate/generate`, `pnpm typecheck`, `pnpm build`, `pnpm lint`,
+`pnpm format:check`, DTO 3/3 y orders 8/8 PASS, incluidos los casos de flag obligatorio y opcional.

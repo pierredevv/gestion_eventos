@@ -10,6 +10,7 @@ import { formatDateTime, formatMoney } from '@/lib/format';
 import type { OrderView } from '@/lib/types';
 
 const paymentQrUrl = process.env.NEXT_PUBLIC_PAYMENT_QR_URL;
+const paymentSupportPhone = process.env.NEXT_PUBLIC_PAYMENT_SUPPORT_PHONE ?? '+591 62220214';
 
 export default function OrderPage(): ReactNode {
   const params = useParams<{ code: string }>();
@@ -195,7 +196,8 @@ export default function OrderPage(): ReactNode {
                   <ul className="text-ink-muted mt-2 space-y-1 text-xs">
                     {item.attendees.map((attendee) => (
                       <li key={attendee.id}>
-                        {attendee.fullName} · {attendee.email}
+                        {attendee.fullName ?? 'Asistente sin nombre'} ·{' '}
+                        {attendee.email ?? order.buyerEmail}
                       </li>
                     ))}
                   </ul>
@@ -252,6 +254,17 @@ export default function OrderPage(): ReactNode {
                   por la organización.
                 </Notice>
               )}
+              <p className="border-line bg-accent-soft mt-4 rounded-lg border p-3 text-xs leading-relaxed">
+                <span className="font-semibold">Referencia para consultas:</span>{' '}
+                <a
+                  className="text-accent font-semibold"
+                  href={`tel:${paymentSupportPhone.replace(/[^\d+]/g, '')}`}
+                >
+                  {paymentSupportPhone}
+                </a>
+                <br />
+                Si no puedes enviar el comprobante, escribe a este número.
+              </p>
               <div className="mt-6 space-y-4">
                 <Field label="Monto declarado">
                   <input

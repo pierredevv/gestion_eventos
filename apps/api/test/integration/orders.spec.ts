@@ -192,6 +192,46 @@ describeWithDatabase('orders and inventory', () => {
     expect(reservation.status).toBe('ACTIVE');
   });
 
+  it('rejects blank attendee details when the event requires them', async () => {
+    const payload = orderPayload(1, 'idem-required-details');
+    payload.items[0]!.attendees[0]!.fullName = '';
+    payload.items[0]!.attendees[0]!.email = '';
+
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/orders')
+      .send(payload)
+      .expect(400);
+
+    expect(response.body.code).toBe('ATTENDEE_DETAILS_REQUIRED');
+  });
+
+  it('accepts blank attendee details when the event makes them optional', async () => {
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { requireAttendeeDetails: false },
+    });
+
+    const payload = orderPayload(1, 'idem-optional-details');
+    payload.items[0]!.attendees[0]!.fullName = '';
+    payload.items[0]!.attendees[0]!.email = '';
+
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/orders')
+      .send(payload)
+      .expect(201);
+
+    expect(response.body.order.items[0].attendees[0]).toMatchObject({
+      fullName: null,
+      email: null,
+    });
+
+    const storedAttendee = await prisma.attendee.findFirstOrThrow({
+      where: { orderItem: { orderId: response.body.order.id } },
+    });
+    expect(storedAttendee.fullName).toBeNull();
+    expect(storedAttendee.email).toBeNull();
+  });
+
   it('rejects concurrent orders that exceed available stock', async () => {
     const results = await Promise.all([
       request(app.getHttpServer()).post('/api/v1/orders').send(orderPayload(4, 'idem-race-001')),

@@ -31,6 +31,7 @@ export interface EventView {
   timezone: string;
   currency: string;
   capacity: number | null;
+  requireAttendeeDetails: boolean;
   startDate: string;
   endDate: string;
   registrationStart: string;
@@ -52,8 +53,8 @@ export interface PaginatedEvents {
 
 export interface AttendeeView {
   id: string;
-  fullName: string;
-  email: string;
+  fullName: string | null;
+  email: string | null;
   phone: string | null;
   documentNumber: string | null;
 }

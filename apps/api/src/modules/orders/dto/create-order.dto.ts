@@ -21,18 +21,41 @@ const trim = ({ value }: { value: unknown }): unknown =>
 const lowercaseEmail = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim().toLowerCase() : value;
 
+/** Empty attendee inputs are treated as omitted when the event allows it. */
+const optionalTrim = ({ value }: { value: unknown }): unknown => {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? undefined : trimmed;
+};
+
+const optionalLowercaseEmail = ({ value }: { value: unknown }): unknown => {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim().toLowerCase();
+  return trimmed.length === 0 ? undefined : trimmed;
+};
+
 export class AttendeeDto {
-  @ApiProperty({ example: 'María Pérez' })
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Required unless the event sets requireAttendeeDetails=false',
+    example: 'María Pérez',
+  })
+  @IsOptional()
   @IsString()
   @Length(2, 150)
-  @Transform(trim)
-  fullName: string;
+  @Transform(optionalTrim)
+  fullName?: string;
 
-  @ApiProperty({ example: 'maria@example.com' })
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Required unless the event sets requireAttendeeDetails=false',
+    example: 'maria@example.com',
+  })
+  @IsOptional()
   @IsEmail()
   @Length(5, 254)
-  @Transform(lowercaseEmail)
-  email: string;
+  @Transform(optionalLowercaseEmail)
+  email?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

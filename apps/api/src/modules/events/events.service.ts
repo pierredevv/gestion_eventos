@@ -102,6 +102,7 @@ export class EventsService {
         timezone: dto.timezone ?? this.config.get('EVENT_TIMEZONE', { infer: true }),
         currency: dto.currency ?? this.config.get('DEFAULT_CURRENCY', { infer: true }),
         capacity: dto.capacity ?? null,
+        requireAttendeeDetails: dto.requireAttendeeDetails ?? true,
         startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate),
         registrationStart: new Date(dto.registrationStart),
@@ -170,6 +171,9 @@ export class EventsService {
         ...(dto.timezone !== undefined ? { timezone: dto.timezone } : {}),
         ...(dto.currency !== undefined ? { currency: dto.currency } : {}),
         ...(dto.capacity !== undefined ? { capacity } : {}),
+        ...(dto.requireAttendeeDetails !== undefined
+          ? { requireAttendeeDetails: dto.requireAttendeeDetails }
+          : {}),
         ...(dto.startDate !== undefined ? { startDate: new Date(dto.startDate) } : {}),
         ...(dto.endDate !== undefined ? { endDate: new Date(dto.endDate) } : {}),
         ...(dto.registrationStart !== undefined
@@ -544,6 +548,7 @@ export class EventsService {
       timezone: event.timezone,
       currency: event.currency,
       capacity: event.capacity,
+      requireAttendeeDetails: event.requireAttendeeDetails,
       startDate: event.startDate.toISOString(),
       endDate: event.endDate.toISOString(),
       registrationStart: event.registrationStart.toISOString(),

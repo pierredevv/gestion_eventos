@@ -25,6 +25,7 @@ const emptyEvent = {
   endDate: '',
   registrationStart: '',
   registrationEnd: '',
+  requireAttendeeDetails: true,
   publishNow: false,
 };
 
@@ -79,6 +80,7 @@ function EventForm({ onCreated }: { onCreated: () => void }): ReactNode {
         endDate: iso(form.endDate),
         registrationStart: iso(form.registrationStart),
         registrationEnd: iso(form.registrationEnd),
+        requireAttendeeDetails: form.requireAttendeeDetails,
         publishNow: form.publishNow,
       });
       setForm(emptyEvent);
@@ -164,6 +166,14 @@ function EventForm({ onCreated }: { onCreated: () => void }): ReactNode {
             onChange={(e) => set('endDate', e.target.value)}
           />
         </Field>
+        <label className="text-sm sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={form.requireAttendeeDetails}
+            onChange={(e) => set('requireAttendeeDetails', e.target.checked)}
+          />{' '}
+          Exigir nombre y correo del asistente
+        </label>
         <label className="text-sm sm:col-span-2">
           <input
             type="checkbox"
@@ -321,11 +331,21 @@ function EventCard({ event, onChange }: { event: EventView; onChange: () => void
     location: event.location ?? '',
     address: event.address ?? '',
   });
+  const [description, setDescription] = useState(event.description);
+  const [requireAttendeeDetails, setRequireAttendeeDetails] = useState(
+    event.requireAttendeeDetails,
+  );
   const [savingVenue, setSavingVenue] = useState(false);
+  const [savingDetails, setSavingDetails] = useState(false);
 
   useEffect(() => {
     setVenue({ location: event.location ?? '', address: event.address ?? '' });
   }, [event.location, event.address]);
+
+  useEffect(() => {
+    setDescription(event.description);
+    setRequireAttendeeDetails(event.requireAttendeeDetails);
+  }, [event.description, event.requireAttendeeDetails]);
 
   async function saveVenue(): Promise<void> {
     setError('');
@@ -340,6 +360,28 @@ function EventCard({ event, onChange }: { event: EventView; onChange: () => void
       setError(cause instanceof ApiRequestError ? cause.message : 'No se pudo actualizar el lugar');
     } finally {
       setSavingVenue(false);
+    }
+  }
+
+  async function saveDetails(): Promise<void> {
+    setError('');
+    if (!description.trim()) {
+      setError('La descripción no puede quedar vacía.');
+      return;
+    }
+    setSavingDetails(true);
+    try {
+      await apiSend(`/admin/events/${event.id}`, 'PATCH', {
+        description: description.trim(),
+        requireAttendeeDetails,
+      });
+      onChange();
+    } catch (cause) {
+      setError(
+        cause instanceof ApiRequestError ? cause.message : 'No se pudo actualizar el evento',
+      );
+    } finally {
+      setSavingDetails(false);
     }
   }
 
@@ -387,7 +429,31 @@ function EventCard({ event, onChange }: { event: EventView; onChange: () => void
       ) : null}
       {expanded ? (
         <div className="border-line mt-5 border-t pt-5">
-          <h4 className="text-sm font-semibold">Lugar y dirección</h4>
+          <h4 className="text-sm font-semibold">Descripción y cronograma</h4>
+          <p className="text-ink-muted mt-1 text-xs">
+            Aquí se editan los textos públicos del evento, incluidos disertantes y contacto.
+          </p>
+          <textarea
+            className={`${inputClass} mt-3 min-h-48`}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={requireAttendeeDetails}
+              onChange={(e) => setRequireAttendeeDetails(e.target.checked)}
+            />
+            Exigir nombre y correo del asistente
+          </label>
+          <button
+            className={`${secondaryButtonClass} mt-3`}
+            disabled={savingDetails}
+            onClick={() => void saveDetails()}
+          >
+            {savingDetails ? 'Guardando…' : 'Guardar descripción y opciones'}
+          </button>
+          <h4 className="mt-6 text-sm font-semibold">Lugar y dirección</h4>
           <p className="text-ink-muted mt-1 text-xs">
             Vacío se muestra como “Por definir”. Puedes completarlo cuando lo confirmes.
           </p>

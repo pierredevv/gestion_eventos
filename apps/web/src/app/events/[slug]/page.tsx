@@ -104,6 +104,7 @@ export default function EventDetailPage(): ReactNode {
     0,
   );
   const currency = event?.currency ?? cartRows[0]?.ticketType.currency ?? 'BOB';
+  const requireAttendeeDetails = event?.requireAttendeeDetails ?? true;
 
   function quantityFor(ticketTypeId: string): number {
     return cart.find((item) => item.ticketTypeId === ticketTypeId)?.quantity ?? 0;
@@ -156,16 +157,20 @@ export default function EventDetailPage(): ReactNode {
       setError('Completa el nombre, el correo y el teléfono del comprador.');
       return;
     }
-    const invalidAttendee = cartRows.some((row) =>
-      row.attendees.some(
-        (attendee) =>
-          attendee.fullName.trim().length < 2 ||
-          !hasEmail(attendee.email) ||
-          attendee.email.trim().length > 254,
-      ),
-    );
-    if (invalidAttendee) {
-      setError('Completa el nombre y un correo válido para cada asistente.');
+    const attendeeInvalid = (attendee: AttendeeInput): boolean => {
+      const fullName = attendee.fullName.trim();
+      const email = attendee.email.trim();
+      if (requireAttendeeDetails && (!fullName || !email)) return true;
+      if (fullName && fullName.length < 2) return true;
+      if (email && (!hasEmail(email) || email.length > 254)) return true;
+      return false;
+    };
+    if (cartRows.some((row) => row.attendees.some(attendeeInvalid))) {
+      setError(
+        requireAttendeeDetails
+          ? 'Completa el nombre y un correo válido para cada asistente.'
+          : 'Revisa los datos de los asistentes: nombre de al menos 2 caracteres y correo válido.',
+      );
       return;
     }
     setSubmitting(true);
@@ -179,8 +184,8 @@ export default function EventDetailPage(): ReactNode {
           ticketTypeId: row.ticketTypeId,
           quantity: row.quantity,
           attendees: row.attendees.map((attendee) => ({
-            fullName: attendee.fullName.trim(),
-            email: attendee.email.trim().toLowerCase(),
+            ...(attendee.fullName.trim() ? { fullName: attendee.fullName.trim() } : {}),
+            ...(attendee.email.trim() ? { email: attendee.email.trim().toLowerCase() } : {}),
           })),
         })),
       });
@@ -387,7 +392,9 @@ export default function EventDetailPage(): ReactNode {
                   </p>
                   {row.attendees.map((attendee, index) => (
                     <div key={index} className="grid gap-3 sm:grid-cols-2">
-                      <Field label={`Nombre del asistente ${index + 1} de ${row.ticketType.name}`}>
+                      <Field
+                        label={`Nombre del asistente ${index + 1} de ${row.ticketType.name}${requireAttendeeDetails ? '' : ' (opcional)'}`}
+                      >
                         <input
                           className={inputClass}
                           data-testid={`attendee-name-${row.ticketTypeId}-${index}`}
@@ -397,7 +404,9 @@ export default function EventDetailPage(): ReactNode {
                           }
                         />
                       </Field>
-                      <Field label={`Correo del asistente ${index + 1} de ${row.ticketType.name}`}>
+                      <Field
+                        label={`Correo del asistente ${index + 1} de ${row.ticketType.name}${requireAttendeeDetails ? '' : ' (opcional)'}`}
+                      >
                         <input
                           className={inputClass}
                           data-testid={`attendee-email-${row.ticketTypeId}-${index}`}

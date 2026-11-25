@@ -30,6 +30,8 @@ export interface EventView {
   timezone: string;
   currency: string;
   capacity: number | null;
+  /** When false, attendee name and email are optional at checkout. */
+  requireAttendeeDetails: boolean;
   startDate: string;
   endDate: string;
   registrationStart: string;

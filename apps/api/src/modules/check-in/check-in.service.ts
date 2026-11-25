@@ -130,7 +130,7 @@ export class CheckInService {
       checkInId,
       ticketId: ticket.id,
       ticketCode: ticket.ticketCode,
-      attendeeName: ticket.attendee.fullName,
+      attendeeName: ticket.attendee.fullName ?? ticket.order.buyerName,
       ticketTypeName: ticket.ticketType.name,
       eventTitle: event.title,
       checkedAt: now.toISOString(),
@@ -141,13 +141,13 @@ export class CheckInService {
   async listByEvent(eventId: string): Promise<CheckInRecord[]> {
     const records = await this.prisma.checkIn.findMany({
       where: { ticket: { order: { eventId } } },
-      include: { ticket: { include: { attendee: true, ticketType: true } } },
+      include: { ticket: { include: { attendee: true, ticketType: true, order: true } } },
       orderBy: { checkedAt: 'desc' },
     });
     return records.map((record) => ({
       id: record.id,
       ticketCode: record.ticket.ticketCode,
-      attendeeName: record.ticket.attendee.fullName,
+      attendeeName: record.ticket.attendee.fullName ?? record.ticket.order.buyerName,
       ticketTypeName: record.ticket.ticketType.name,
       checkedById: record.checkedById,
       checkedAt: record.checkedAt.toISOString(),
@@ -197,7 +197,7 @@ export class CheckInService {
       ticketId: ticket.id,
       ticketCode: ticket.ticketCode,
       status: ticket.status,
-      attendeeName: ticket.attendee.fullName,
+      attendeeName: ticket.attendee.fullName ?? ticket.order.buyerName,
       ticketTypeName: ticket.ticketType.name,
       eventId: event.id,
       eventTitle: event.title,

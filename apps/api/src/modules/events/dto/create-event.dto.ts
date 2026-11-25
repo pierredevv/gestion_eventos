@@ -98,6 +98,14 @@ export class CreateEventDto {
   @IsDateString()
   registrationEnd: string;
 
+  @ApiPropertyOptional({
+    default: true,
+    description: 'Require attendee name and email at checkout',
+  })
+  @IsOptional()
+  @IsBoolean()
+  requireAttendeeDetails?: boolean;
+
   @ApiPropertyOptional({ default: false })
   @IsOptional()
   @IsBoolean()

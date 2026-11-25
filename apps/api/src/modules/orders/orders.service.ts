@@ -123,6 +123,15 @@ export class OrdersService {
           message: 'Each ticket needs exactly one attendee',
         });
       }
+      if (
+        event.requireAttendeeDetails &&
+        item.attendees.some((attendee) => !attendee.fullName || !attendee.email)
+      ) {
+        throw new BadRequestException({
+          code: 'ATTENDEE_DETAILS_REQUIRED',
+          message: 'Each attendee needs a name and a valid email for this event',
+        });
+      }
     }
 
     const ttlMinutes = this.config.get('RESERVATION_TTL_MINUTES', { infer: true });
@@ -181,8 +190,8 @@ export class OrdersService {
                   attendees: {
                     create: item.attendees.map((attendee, index) => ({
                       unitIndex: index + 1,
-                      fullName: attendee.fullName,
-                      email: attendee.email,
+                      fullName: attendee.fullName ?? null,
+                      email: attendee.email ?? null,
                       phone: attendee.phone ?? null,
                       documentNumber: attendee.documentNumber ?? null,
                     })),

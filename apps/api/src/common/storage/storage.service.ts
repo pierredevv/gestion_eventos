@@ -14,6 +14,10 @@ export interface UploadObjectInput {
  */
 export abstract class StorageService {
   abstract upload(input: UploadObjectInput): Promise<void>;
-  abstract createSignedUrl(bucket: StorageBucket, key: string, expiresInSeconds: number): Promise<string>;
+  abstract createSignedUrl(
+    bucket: StorageBucket,
+    key: string,
+    expiresInSeconds: number,
+  ): Promise<string>;
   abstract remove(bucket: StorageBucket, key: string): Promise<void>;
 }

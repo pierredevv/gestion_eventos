@@ -739,6 +739,11 @@ export interface components {
             registrationStart: string;
             /** @example 2027-03-15T19:00:00Z */
             registrationEnd: string;
+            /**
+             * @description Require attendee name and email at checkout
+             * @default true
+             */
+            requireAttendeeDetails: boolean;
             /** @default false */
             publishNow: boolean;
         };
@@ -755,6 +760,8 @@ export interface components {
             endDate?: string;
             registrationStart?: string;
             registrationEnd?: string;
+            /** @description Require attendee name and email at checkout */
+            requireAttendeeDetails?: boolean;
         };
         CreateTicketTypeDto: {
             /** @example Entrada General */
@@ -800,10 +807,16 @@ export interface components {
             isActive?: boolean;
         };
         AttendeeDto: {
-            /** @example María Pérez */
-            fullName: string;
-            /** @example maria@example.com */
-            email: string;
+            /**
+             * @description Required unless the event sets requireAttendeeDetails=false
+             * @example María Pérez
+             */
+            fullName?: string | null;
+            /**
+             * @description Required unless the event sets requireAttendeeDetails=false
+             * @example maria@example.com
+             */
+            email?: string | null;
             phone?: string;
             documentNumber?: string;
         };
