@@ -259,6 +259,40 @@ describeWithDatabase('events and ticket types', () => {
     expect(doublePublish.body.code).toBe('EVENT_INVALID_STATE');
   });
 
+  it('reopens a cancelled event through publish', async () => {
+    const manager = await signIn(MANAGER_EMAIL, MANAGER_PASSWORD);
+    const created = await manager.agent
+      .post('/api/v1/admin/events')
+      .set('X-CSRF-Token', manager.csrf)
+      .send(eventPayload())
+      .expect(201);
+    const eventId = created.body.event.id as string;
+
+    await manager.agent
+      .post(`/api/v1/admin/events/${eventId}/ticket-types`)
+      .set('X-CSRF-Token', manager.csrf)
+      .send(ticketTypePayload({ capacity: 80 }))
+      .expect(201);
+
+    await manager.agent
+      .post(`/api/v1/admin/events/${eventId}/publish`)
+      .set('X-CSRF-Token', manager.csrf)
+      .expect(201);
+
+    const cancelled = await manager.agent
+      .post(`/api/v1/admin/events/${eventId}/cancel`)
+      .set('X-CSRF-Token', manager.csrf)
+      .expect(201);
+    expect(cancelled.body.event.status).toBe('CANCELLED');
+
+    const republished = await manager.agent
+      .post(`/api/v1/admin/events/${eventId}/publish`)
+      .set('X-CSRF-Token', manager.csrf)
+      .expect(201);
+    expect(republished.body.event.status).toBe('PUBLISHED');
+    expect(republished.body.event.publishedAt).toBe(cancelled.body.event.publishedAt);
+  });
+
   it('blocks non-managers from admin event routes', async () => {
     const buyer = await signIn(BUYER_EMAIL, BUYER_PASSWORD);
     const response = await buyer.agent

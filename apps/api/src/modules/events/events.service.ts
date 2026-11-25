@@ -202,7 +202,7 @@ export class EventsService {
 
   async publish(id: string, userId: string, context: RequestContext): Promise<EventView> {
     const event = await this.findEventOrThrow(id);
-    if (event.status !== EventStatus.DRAFT) {
+    if (event.status !== EventStatus.DRAFT && event.status !== EventStatus.CANCELLED) {
       throw this.invalidState(event.status, 'publish');
     }
 
@@ -218,7 +218,10 @@ export class EventsService {
 
     const updated = await this.prisma.event.update({
       where: { id },
-      data: { status: EventStatus.PUBLISHED, publishedAt: new Date() },
+      data: {
+        status: EventStatus.PUBLISHED,
+        publishedAt: event.publishedAt ?? new Date(),
+      },
       include: EVENT_INCLUDE,
     });
 

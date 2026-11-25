@@ -64,7 +64,7 @@ export class AdminEventsController {
   }
 
   @Post(':id/publish')
-  @ApiOperation({ summary: 'Publish a draft event' })
+  @ApiOperation({ summary: 'Publish a draft event or reopen a cancelled event' })
   async publish(
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser('id') userId: string,
