@@ -40,7 +40,9 @@ const STATUS_LABELS: Record<string, string> = {
   EXPIRED: 'Expirado',
   PENDING: 'Pendiente',
   APPROVED: 'Aprobado',
+  ACCEPTED: 'Aprobado',
   REJECTED: 'Rechazado',
+  SUPERSEDED: 'Reemplazado',
   VALID: 'Vigente',
   USED: 'Utilizado',
   OUTSIDE_WINDOW: 'Fuera de horario',
@@ -53,10 +55,10 @@ export function statusLabel(status: string): string {
 }
 
 export function statusTone(status: string): string {
-  if (['CONFIRMED', 'APPROVED', 'VALID', 'PUBLISHED', 'ACTIVE'].includes(status)) {
+  if (['CONFIRMED', 'APPROVED', 'ACCEPTED', 'VALID', 'PUBLISHED', 'ACTIVE'].includes(status)) {
     return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
   }
-  if (['REJECTED', 'CANCELLED', 'EXPIRED', 'USED', 'INACTIVE'].includes(status)) {
+  if (['REJECTED', 'SUPERSEDED', 'CANCELLED', 'EXPIRED', 'USED', 'INACTIVE'].includes(status)) {
     return 'bg-slate-100 text-slate-700 ring-slate-200';
   }
   return 'bg-amber-50 text-amber-800 ring-amber-200';

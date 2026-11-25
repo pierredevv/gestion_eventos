@@ -204,7 +204,7 @@ export interface PaymentSubmissionView {
   receiptMimeType: string;
   receiptSize: number;
   receiptUrl: string;
-  reviewStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+  reviewStatus: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'SUPERSEDED';
   paymentStatus: string;
   orderStatus: string;
   paymentAttempts: number;

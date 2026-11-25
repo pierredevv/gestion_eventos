@@ -96,7 +96,7 @@ export default function AdminPaymentsPage(): ReactNode {
             }}
           >
             <option value="PENDING">Pendientes</option>
-            <option value="APPROVED">Aprobados</option>
+            <option value="ACCEPTED">Aprobados</option>
             <option value="REJECTED">Rechazados</option>
           </select>
         </label>
@@ -155,14 +155,18 @@ export default function AdminPaymentsPage(): ReactNode {
               </div>
             </dl>
             <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                className={secondaryButtonClass}
-                href={item.receiptUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Ver comprobante
-              </a>
+              {item.paymentReference?.startsWith('LEGACY-') ? (
+                <span className="text-ink-muted text-sm">Sin comprobante (importación legacy)</span>
+              ) : (
+                <a
+                  className={secondaryButtonClass}
+                  href={item.receiptUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Ver comprobante
+                </a>
+              )}
               {item.reviewStatus === 'PENDING' ? (
                 <button
                   className={buttonClass}
