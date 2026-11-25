@@ -1,5 +1,5 @@
 /** Buckets are private; every read goes through a short-lived signed URL. */
-export type StorageBucket = 'receipts' | 'ticket-assets';
+export type StorageBucket = 'receipts' | 'ticket-assets' | 'event-assets';
 
 export interface UploadObjectInput {
   bucket: StorageBucket;

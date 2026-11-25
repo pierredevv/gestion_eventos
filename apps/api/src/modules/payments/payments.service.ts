@@ -167,6 +167,7 @@ export class PaymentsService {
             dedupeKey: `receipt-received-${submission.id}`,
             payload: {
               orderCode: order.orderCode,
+              eventId: order.eventId,
               declaredAmount: money(submission.declaredAmount),
               paymentReference: dto.paymentReference ?? null,
             } as Prisma.InputJsonValue,
@@ -328,6 +329,8 @@ export class PaymentsService {
           dedupeKey: `payment-approved-${order.id}`,
           payload: {
             orderCode: order.orderCode,
+            eventId: order.eventId,
+            eventTitle: initial.payment.order.event.title,
             amount: money(payment.amount),
           } as Prisma.InputJsonValue,
         },
@@ -341,7 +344,12 @@ export class PaymentsService {
           type: 'TICKET_DELIVERY',
           recipient: order.buyerEmail,
           dedupeKey: `ticket-delivery-${order.id}`,
-          payload: { orderId: order.id, orderCode: order.orderCode } as Prisma.InputJsonValue,
+          payload: {
+            orderId: order.id,
+            orderCode: order.orderCode,
+            eventId: order.eventId,
+            eventTitle: initial.payment.order.event.title,
+          } as Prisma.InputJsonValue,
         },
       });
     }, INTERACTIVE_TRANSACTION_OPTIONS);
@@ -459,6 +467,8 @@ export class PaymentsService {
           dedupeKey: `payment-rejected-${submissionId}`,
           payload: {
             orderCode: order.orderCode,
+            eventId: order.eventId,
+            eventTitle: initial.payment.order.event.title,
             reason: notes,
             attempts,
             maxAttempts,

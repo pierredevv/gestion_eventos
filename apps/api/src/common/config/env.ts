@@ -68,6 +68,7 @@ export const envSchema = z
     SUPABASE_PUBLISHABLE_KEY: optionalString,
     SUPABASE_STORAGE_BUCKET_RECEIPTS: z.string().min(1).default('receipts'),
     SUPABASE_STORAGE_BUCKET_TICKETS: z.string().min(1).default('ticket-assets'),
+    SUPABASE_STORAGE_BUCKET_EVENT_ASSETS: z.string().min(1).default('event-assets'),
 
     TOKEN_ENCRYPTION_KEY: optionalEncryptionKey,
 

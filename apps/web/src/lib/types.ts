@@ -52,6 +52,40 @@ export interface PaginatedEvents {
   totalPages: number;
 }
 
+export type EventEmailType =
+  | 'ORDER_CREATED'
+  | 'RECEIPT_RECEIVED'
+  | 'PAYMENT_APPROVED'
+  | 'PAYMENT_REJECTED'
+  | 'TICKET_DELIVERY';
+
+export interface EmailOverrideView {
+  subject?: string;
+  headline?: string;
+  intro?: string;
+  ctaLabel?: string;
+  footer?: string;
+}
+
+export type EventEmailTemplatesView = Partial<Record<EventEmailType, EmailOverrideView>>;
+
+export interface EventEmailConfigView {
+  brandName: string;
+  primaryColor: string;
+  textColor: string;
+  backgroundColor: string;
+  logoUrl: string | null;
+  templates: EventEmailTemplatesView;
+  eventTitle: string;
+  currency: string;
+}
+
+export interface EventEmailPreviewView {
+  subject: string;
+  text: string;
+  html: string;
+}
+
 export interface AttendeeView {
   id: string;
   fullName: string | null;

@@ -29,6 +29,7 @@ export class SupabaseStorageService extends StorageService {
     this.buckets = {
       receipts: this.config.get('SUPABASE_STORAGE_BUCKET_RECEIPTS', { infer: true }),
       'ticket-assets': this.config.get('SUPABASE_STORAGE_BUCKET_TICKETS', { infer: true }),
+      'event-assets': this.config.get('SUPABASE_STORAGE_BUCKET_EVENT_ASSETS', { infer: true }),
     };
   }
 

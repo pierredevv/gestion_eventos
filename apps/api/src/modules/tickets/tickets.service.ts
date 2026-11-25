@@ -243,7 +243,11 @@ export class TicketsService {
         type: 'TICKET_DELIVERY',
         recipient: order.buyerEmail,
         dedupeKey: `ticket-delivery-resend-${order.id}-${randomBytes(6).toString('hex')}`,
-        payload: { orderId: order.id, orderCode: order.orderCode } as Prisma.InputJsonValue,
+        payload: {
+          orderId: order.id,
+          orderCode: order.orderCode,
+          eventId: order.eventId,
+        } as Prisma.InputJsonValue,
       },
     });
     await this.audit.record({

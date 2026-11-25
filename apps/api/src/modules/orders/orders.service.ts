@@ -285,6 +285,7 @@ export class OrdersService {
           dedupeKey: `order-created-${created.id}`,
           payload: {
             orderCode: created.orderCode,
+            eventId: event.id,
             eventTitle: event.title,
             expiresAt: expiresAt.toISOString(),
             accessToken,

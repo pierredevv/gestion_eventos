@@ -213,13 +213,31 @@ model Event {
   createdAt              DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt              DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  createdBy   User         @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  ticketTypes TicketType[]
-  orders      Order[]
+  createdBy     User                @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  ticketTypes   TicketType[]
+  orders        Order[]
+  emailBranding EventEmailBranding?
 
   @@index([status, startDate])
   @@index([createdById])
   @@map("events")
+}
+
+/// Per-event email identity. Absent rows fall back to the platform brand.
+model EventEmailBranding {
+  eventId         String   @id @map("event_id") @db.Uuid
+  brandName       String?  @map("brand_name") @db.VarChar(80)
+  logoKey         String?  @map("logo_key") @db.VarChar(255)
+  primaryColor    String?  @map("primary_color") @db.VarChar(7)
+  textColor       String?  @map("text_color") @db.VarChar(7)
+  backgroundColor String?  @map("background_color") @db.VarChar(7)
+  /// Validated JSON: { ORDER_CREATED: { subject?, headline?, ... }, ... }
+  templates       Json?
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("event_email_branding")
 }
 
 model TicketType {

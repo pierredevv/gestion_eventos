@@ -10,6 +10,7 @@ import { Prisma } from '@prisma/client';
 import { AuditService } from '../../common/audit/audit.service';
 import type { AppEnv } from '../../common/config/env';
 import { EmailService } from '../../common/email/email.service';
+import { renderPasswordResetEmail, renderVerificationEmail } from '../../common/email/templates';
 import type { RequestContext } from '../../common/http/request-context';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
@@ -330,17 +331,14 @@ export class AuthService {
     const webOrigin = this.config.get('WEB_ORIGIN', { infer: true });
     const path = purpose === 'PASSWORD_RESET' ? '/reset-password' : '/verify-email';
     const link = `${webOrigin}${path}?token=${encodeURIComponent(token)}`;
-    const subject =
-      purpose === 'PASSWORD_RESET' ? 'Restablece tu contraseña' : 'Verifica tu correo';
+    const expires = purpose === 'PASSWORD_RESET' ? '30 minutos' : '24 horas';
+    const rendered =
+      purpose === 'PASSWORD_RESET'
+        ? renderPasswordResetEmail({ link, expires })
+        : renderVerificationEmail({ link, expires });
 
     try {
-      await this.email.send({
-        to: email,
-        subject,
-        text: `${subject}:\n\n${link}\n\nEste enlace vence en ${
-          purpose === 'PASSWORD_RESET' ? '30 minutos' : '24 horas'
-        }. Si no solicitaste este correo, ignóralo.`,
-      });
+      await this.email.send({ to: email, ...rendered });
     } catch (error) {
       // Email delivery is retried by the notification layer in F7; it must not
       // roll back the account operation or leak provider details to the client.

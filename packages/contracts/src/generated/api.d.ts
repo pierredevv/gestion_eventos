@@ -305,7 +305,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Publish a draft event */
+        /** Publish a draft event or reopen a cancelled event */
         post: operations["AdminEventsController_publish"];
         delete?: never;
         options?: never;
@@ -380,6 +380,58 @@ export interface paths {
         head?: never;
         /** Update a ticket type */
         patch: operations["AdminEventsController_updateTicketType"];
+        trace?: never;
+    };
+    "/api/v1/admin/events/{id}/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the email identity and copy overrides of an event */
+        get: operations["AdminEventEmailController_config"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update the email identity and copy overrides of an event */
+        patch: operations["AdminEventEmailController_update"];
+        trace?: never;
+    };
+    "/api/v1/admin/events/{id}/email/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload the logo used in this event emails */
+        post: operations["AdminEventEmailController_uploadLogo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/events/{id}/email/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render an email preview with draft values, without saving */
+        post: operations["AdminEventEmailController_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/orders": {
@@ -812,6 +864,37 @@ export interface components {
             /** Format: date-time */
             salesEnd?: string;
             isActive?: boolean;
+        };
+        EmailOverrideDto: {
+            subject?: string;
+            headline?: string;
+            intro?: string;
+            ctaLabel?: string;
+            footer?: string;
+        };
+        EventEmailTemplatesDto: {
+            ORDER_CREATED?: components["schemas"]["EmailOverrideDto"];
+            RECEIPT_RECEIVED?: components["schemas"]["EmailOverrideDto"];
+            PAYMENT_APPROVED?: components["schemas"]["EmailOverrideDto"];
+            PAYMENT_REJECTED?: components["schemas"]["EmailOverrideDto"];
+            TICKET_DELIVERY?: components["schemas"]["EmailOverrideDto"];
+        };
+        UpdateEventEmailDto: {
+            brandName?: string;
+            /** @example #b8431a */
+            primaryColor?: string;
+            /** @example #12141a */
+            textColor?: string;
+            /** @example #f8f6f1 */
+            backgroundColor?: string;
+            templates?: components["schemas"]["EventEmailTemplatesDto"];
+            /** @description Remove the uploaded logo */
+            removeLogo?: boolean;
+        };
+        EventEmailPreviewDto: {
+            /** @enum {string} */
+            type: "ORDER_CREATED" | "RECEIPT_RECEIVED" | "PAYMENT_APPROVED" | "PAYMENT_REJECTED" | "TICKET_DELIVERY";
+            config?: components["schemas"]["UpdateEventEmailDto"];
         };
         AttendeeDto: {
             /**
@@ -1423,6 +1506,90 @@ export interface operations {
         };
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventEmailController_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventEmailController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEventEmailDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventEmailController_uploadLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminEventEmailController_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventEmailPreviewDto"];
+            };
+        };
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

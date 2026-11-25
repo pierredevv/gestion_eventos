@@ -4,8 +4,16 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationStatus, NotificationType, Prisma, type NotificationJob } from '@prisma/client';
 import type { AppEnv } from '../../common/config/env';
 import { EmailService } from '../../common/email/email.service';
+import {
+  renderOrderCreated,
+  renderPaymentApproved,
+  renderPaymentRejected,
+  renderReceiptReceived,
+  renderTicketDelivery,
+} from '../../common/email/templates';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { INTERACTIVE_TRANSACTION_OPTIONS } from '../../common/prisma/transaction-options';
+import { EventEmailBrandingService } from '../events/event-email-branding.service';
 import { TicketsService } from '../tickets/tickets.service';
 
 const BATCH_SIZE = 20;
@@ -39,6 +47,7 @@ export class NotificationWorkerService {
     private readonly prisma: PrismaService,
     private readonly email: EmailService,
     private readonly tickets: TicketsService,
+    private readonly branding: EventEmailBrandingService,
     private readonly config: ConfigService<AppEnv, true>,
   ) {}
 
@@ -115,6 +124,9 @@ export class NotificationWorkerService {
     const payload = asRecord(job.payload);
     const webOrigin = this.config.get('WEB_ORIGIN', { infer: true });
     const orderCode = text(payload.orderCode) ?? 'tu pedido';
+    // Old jobs have no eventId: they simply use the platform brand.
+    const context = await this.branding.getRenderContext(text(payload.eventId));
+    const eventTitle = text(payload.eventTitle) ?? context.eventTitle;
 
     switch (job.type) {
       case NotificationType.ORDER_CREATED: {
@@ -122,41 +134,59 @@ export class NotificationWorkerService {
         const link = token
           ? `${webOrigin}/orders/${encodeURIComponent(orderCode)}?token=${encodeURIComponent(token)}`
           : webOrigin;
-        await this.email.send({
-          to: job.recipient,
-          subject: `Pedido ${orderCode} creado`,
-          text: `Tu pedido ${orderCode} fue creado. Completa el pago antes de ${text(payload.expiresAt) ?? 'el plazo indicado'}.\nRevisa tu pedido aquí: ${link}`,
+        const rendered = renderOrderCreated({
+          brand: context.brand,
+          overrides: context.templates.ORDER_CREATED,
+          currency: context.currency,
+          orderCode,
+          eventTitle,
+          expiresAt: text(payload.expiresAt),
+          link,
         });
+        await this.email.send({ to: job.recipient, ...rendered });
         return;
       }
 
-      case NotificationType.RECEIPT_RECEIVED:
-        await this.email.send({
-          to: job.recipient,
-          subject: `Comprobante recibido para ${orderCode}`,
-          text: `Recibimos tu comprobante por ${text(payload.declaredAmount) ?? 'el monto declarado'}. Te avisaremos cuando termine la revisión.`,
+      case NotificationType.RECEIPT_RECEIVED: {
+        const rendered = renderReceiptReceived({
+          brand: context.brand,
+          overrides: context.templates.RECEIPT_RECEIVED,
+          currency: context.currency,
+          orderCode,
+          declaredAmount: text(payload.declaredAmount),
+          paymentReference: text(payload.paymentReference),
         });
+        await this.email.send({ to: job.recipient, ...rendered });
         return;
+      }
 
-      case NotificationType.PAYMENT_APPROVED:
-        await this.email.send({
-          to: job.recipient,
-          subject: `Pago aprobado para ${orderCode}`,
-          text: `Tu pago de ${text(payload.amount) ?? ''} fue aprobado. Tus entradas estarán disponibles en tu portal.`,
+      case NotificationType.PAYMENT_APPROVED: {
+        const rendered = renderPaymentApproved({
+          brand: context.brand,
+          overrides: context.templates.PAYMENT_APPROVED,
+          currency: context.currency,
+          orderCode,
+          amount: text(payload.amount),
         });
+        await this.email.send({ to: job.recipient, ...rendered });
         return;
+      }
 
       case NotificationType.PAYMENT_REJECTED: {
         const definitive = payload.definitive === true;
         const attempts = typeof payload.attempts === 'number' ? payload.attempts : 0;
         const maxAttempts = typeof payload.maxAttempts === 'number' ? payload.maxAttempts : 0;
-        await this.email.send({
-          to: job.recipient,
-          subject: `Comprobante rechazado para ${orderCode}`,
-          text: definitive
-            ? `Tu comprobante fue rechazado de forma definitiva. Motivo: ${text(payload.reason) ?? 'no especificado'}.`
-            : `Tu comprobante fue rechazado. Motivo: ${text(payload.reason) ?? 'no especificado'}. Te quedan ${Math.max(0, maxAttempts - attempts)} intentos.`,
+        const rendered = renderPaymentRejected({
+          brand: context.brand,
+          overrides: context.templates.PAYMENT_REJECTED,
+          currency: context.currency,
+          orderCode,
+          reason: text(payload.reason),
+          attempts,
+          maxAttempts,
+          definitive,
         });
+        await this.email.send({ to: job.recipient, ...rendered });
         return;
       }
 
@@ -179,11 +209,15 @@ export class NotificationWorkerService {
           });
         }
         const link = `${webOrigin}/tickets?token=${encodeURIComponent(token)}`;
-        await this.email.send({
-          to: job.recipient,
-          subject: `Tus entradas para ${text(payload.orderCode) ?? orderCode}`,
-          text: `Tus entradas están listas. Consúltalas y muestra el QR en la entrada: ${link}`,
+        const rendered = renderTicketDelivery({
+          brand: context.brand,
+          overrides: context.templates.TICKET_DELIVERY,
+          currency: context.currency,
+          orderCode,
+          eventTitle,
+          link,
         });
+        await this.email.send({ to: job.recipient, ...rendered });
         return;
       }
     }

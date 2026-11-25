@@ -14,6 +14,7 @@ import {
 import { apiFetch, apiSend, ApiRequestError } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import type { EventView, PaginatedEvents, TicketTypeView } from '@/lib/types';
+import { EventEmailEditor } from './event-email-editor';
 
 const emptyEvent = {
   title: '',
@@ -516,6 +517,7 @@ function EventCard({ event, onChange }: { event: EventView; onChange: () => void
           >
             {savingVenue ? 'Guardando…' : 'Guardar lugar y dirección'}
           </button>
+          <EventEmailEditor eventId={event.id} />
           <h4 className="mt-6 text-sm font-semibold">Tipos de entrada</h4>
           {event.ticketTypes.length === 0 ? (
             <p className="text-ink-muted mt-2 text-sm">Aún no hay tipos de entrada.</p>

@@ -1,4 +1,5 @@
 import type { EventStatus } from '@prisma/client';
+import type { EventEmailTemplates } from '../../common/email/templates';
 
 /** Money is serialized as a string so clients never lose precision. */
 export interface TicketTypeView {
@@ -52,4 +53,22 @@ export interface PaginatedEvents {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export interface EventEmailConfigView {
+  brandName: string;
+  primaryColor: string;
+  textColor: string;
+  backgroundColor: string;
+  /** Short-lived signed URL, regenerated for each read. */
+  logoUrl: string | null;
+  templates: EventEmailTemplates;
+  eventTitle: string;
+  currency: string;
+}
+
+export interface EventEmailPreviewView {
+  subject: string;
+  text: string;
+  html: string;
 }

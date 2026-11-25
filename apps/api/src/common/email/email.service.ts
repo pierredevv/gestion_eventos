@@ -6,8 +6,9 @@ import type { AppEnv } from '../config/env';
 export interface EmailMessage {
   to: string;
   subject: string;
+  /** Plain-text fallback, always generated alongside the HTML version. */
   text: string;
-  html?: string;
+  html: string;
 }
 
 /**

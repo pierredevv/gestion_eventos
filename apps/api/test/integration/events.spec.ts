@@ -9,6 +9,7 @@ import { configureApp } from '../../src/app-config';
 import { AppModule } from '../../src/app.module';
 import { EmailService, type EmailMessage } from '../../src/common/email/email.service';
 import { hashPassword } from '../../src/common/security/password';
+import { StorageService } from '../../src/common/storage/storage.service';
 
 /** End-to-end coverage for event and ticket-type management. */
 
@@ -27,6 +28,7 @@ const TABLES = [
   'order_items',
   'orders',
   'ticket_types',
+  'event_email_branding',
   'events',
   'sessions',
   'verification_tokens',
@@ -55,6 +57,11 @@ function cookieValue(headers: Record<string, unknown>, name: string): string | u
 describeWithDatabase('events and ticket types', () => {
   let app: NestExpressApplication;
   let prisma: PrismaClient;
+  const storage = {
+    upload: jest.fn(async () => undefined),
+    createSignedUrl: jest.fn(async (_bucket: string, key: string) => `https://storage.test/${key}`),
+    remove: jest.fn(async () => undefined),
+  };
 
   beforeAll(async () => {
     prisma = new PrismaClient({ datasourceUrl: testDatabaseUrl, log: ['error'] });
@@ -70,6 +77,8 @@ describeWithDatabase('events and ticket types', () => {
       .useValue({ increment: async () => ({ totalHits: 0, timeToExpire: 0, isBlocked: false }) })
       .overrideProvider(EmailService)
       .useValue({ send: async (_message: EmailMessage) => undefined })
+      .overrideProvider(StorageService)
+      .useValue(storage)
       .compile();
 
     app = moduleRef.createNestApplication<NestExpressApplication>();
@@ -301,5 +310,117 @@ describeWithDatabase('events and ticket types', () => {
       .send(eventPayload())
       .expect(403);
     expect(response.body.code).toBe('INSUFFICIENT_ROLE');
+  });
+
+  async function createEventForEmail(manager: { agent: Agent; csrf: string }): Promise<string> {
+    const created = await manager.agent
+      .post('/api/v1/admin/events')
+      .set('X-CSRF-Token', manager.csrf)
+      .send(eventPayload())
+      .expect(201);
+    return created.body.event.id as string;
+  }
+
+  it('returns platform defaults for an event without email branding', async () => {
+    const manager = await signIn(MANAGER_EMAIL, MANAGER_PASSWORD);
+    const eventId = await createEventForEmail(manager);
+
+    const config = await manager.agent.get(`/api/v1/admin/events/${eventId}/email`).expect(200);
+
+    expect(config.body).toEqual({
+      brandName: 'Eventos',
+      primaryColor: '#b8431a',
+      textColor: '#12141a',
+      backgroundColor: '#f8f6f1',
+      logoUrl: null,
+      templates: {},
+      eventTitle: 'Concierto de Verano 2027',
+      currency: 'BOB',
+    });
+  });
+
+  it('persists per-event colours and copy and rejects invalid values', async () => {
+    const manager = await signIn(MANAGER_EMAIL, MANAGER_PASSWORD);
+    const eventId = await createEventForEmail(manager);
+    const base = `/api/v1/admin/events/${eventId}/email`;
+
+    const updated = await manager.agent
+      .patch(base)
+      .set('X-CSRF-Token', manager.csrf)
+      .send({
+        brandName: 'Festival',
+        primaryColor: '#123456',
+        textColor: '#654321',
+        backgroundColor: '#fffeee',
+        templates: {
+          TICKET_DELIVERY: {
+            subject: 'Tus entradas del Festival',
+            headline: 'Ya puedes entrar',
+            footer: 'Equipo del Festival',
+          },
+        },
+      })
+      .expect(200);
+
+    expect(updated.body.brandName).toBe('Festival');
+    expect(updated.body.primaryColor).toBe('#123456');
+    expect(updated.body.templates.TICKET_DELIVERY).toEqual({
+      subject: 'Tus entradas del Festival',
+      headline: 'Ya puedes entrar',
+      footer: 'Equipo del Festival',
+    });
+
+    const row = await prisma.eventEmailBranding.findUniqueOrThrow({ where: { eventId } });
+    expect(row.templates).toMatchObject({
+      TICKET_DELIVERY: { subject: 'Tus entradas del Festival' },
+    });
+
+    await manager.agent
+      .patch(base)
+      .set('X-CSRF-Token', manager.csrf)
+      .send({ primaryColor: 'red' })
+      .expect(400);
+    await manager.agent
+      .patch(base)
+      .set('X-CSRF-Token', manager.csrf)
+      .send({ templates: { PASSWORD_RESET: { subject: 'x' } } })
+      .expect(400);
+  });
+
+  it('uploads a logo and renders it in a draft preview without saving the draft', async () => {
+    const manager = await signIn(MANAGER_EMAIL, MANAGER_PASSWORD);
+    const eventId = await createEventForEmail(manager);
+    const base = `/api/v1/admin/events/${eventId}/email`;
+
+    const uploaded = await manager.agent
+      .post(`${base}/logo`)
+      .set('X-CSRF-Token', manager.csrf)
+      .attach('logo', Buffer.from('89504e470d0a1a0a', 'hex'), {
+        filename: 'logo.png',
+        contentType: 'image/png',
+      })
+      .expect(201);
+
+    expect(uploaded.body.logoUrl).toMatch(/^https:\/\/storage\.test\/events\//);
+    expect(storage.upload).toHaveBeenCalledWith(
+      expect.objectContaining({ bucket: 'event-assets', contentType: 'image/png' }),
+    );
+
+    const preview = await manager.agent
+      .post(`${base}/preview`)
+      .set('X-CSRF-Token', manager.csrf)
+      .send({
+        type: 'TICKET_DELIVERY',
+        config: { templates: { TICKET_DELIVERY: { subject: 'Borrador del correo' } } },
+      })
+      .expect(201);
+
+    expect(preview.body.subject).toBe('Borrador del correo');
+    expect(preview.body.html).toContain(uploaded.body.logoUrl);
+    expect(preview.body.html).toContain('Borrador del correo');
+    expect(preview.body.text).toContain('Tus entradas están listas');
+
+    const stored = await manager.agent.get(base).expect(200);
+    expect(stored.body.templates).toEqual({});
   });
 });
