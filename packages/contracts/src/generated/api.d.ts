@@ -879,6 +879,30 @@ export interface components {
             PAYMENT_REJECTED?: components["schemas"]["EmailOverrideDto"];
             TICKET_DELIVERY?: components["schemas"]["EmailOverrideDto"];
         };
+        EventEmailLayoutDto: {
+            /** @enum {string} */
+            variant?: "classic" | "nextLevel";
+            tagline?: string;
+            /** @example #0B2559 */
+            headerColor?: string;
+            /** @example #0052A5 */
+            ctaColor?: string;
+            /** @example #F5A000 */
+            accentColor?: string;
+            /** @example #6524B8 */
+            secondaryColor?: string;
+            /** @example #08A6D5 */
+            highlightColor?: string;
+            /** @example #DCE5F2 */
+            borderColor?: string;
+            /** @example #FFFFFF */
+            surfaceColor?: string;
+            /** @example #F4F7FA */
+            detailsColor?: string;
+            organizer?: string;
+            contactPhone?: string;
+            contactEmail?: string;
+        };
         UpdateEventEmailDto: {
             brandName?: string;
             /** @example #b8431a */
@@ -888,6 +912,7 @@ export interface components {
             /** @example #f8f6f1 */
             backgroundColor?: string;
             templates?: components["schemas"]["EventEmailTemplatesDto"];
+            layout?: components["schemas"]["EventEmailLayoutDto"];
             /** @description Remove the uploaded logo */
             removeLogo?: boolean;
         };

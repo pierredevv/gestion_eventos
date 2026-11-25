@@ -7,6 +7,8 @@ import {
   renderReceiptReceived,
   renderTicketDelivery,
   renderVerificationEmail,
+  resolveBrand,
+  resolveLayout,
 } from './index';
 
 describe('email templates', () => {
@@ -147,5 +149,73 @@ describe('email templates', () => {
     expect(reset.subject).toBe('Restablece tu contraseña');
     expect(reset.text).toContain('30 minutos');
     expect(reset.html).toContain('Cambiar contraseña');
+  });
+
+  it('renders the NEXT LEVEL layout with real event details and its footer', () => {
+    const result = renderTicketDelivery({
+      brand: resolveBrand({
+        brandName: 'NEXT LEVEL',
+        logoUrl: 'https://example.com/logo.png',
+        primaryColor: '#0052A5',
+        textColor: '#1E293B',
+        backgroundColor: '#F1F5F9',
+        layout: {
+          variant: 'nextLevel',
+          tagline: 'MÁS ALLÁ DEL CONOCIMIENTO',
+          headerColor: '#0B2559',
+          ctaColor: '#0052A5',
+          organizer: 'MOZILLA BOLIVIA',
+          contactPhone: '+591 62220214',
+        },
+      }),
+      orderCode: 'PED-1',
+      eventTitle: 'NEXT LEVEL',
+      link: 'https://example.com/tickets?token=abc',
+      details: [
+        { label: 'Fecha', value: '27 de noviembre de 2026' },
+        { label: 'Horario', value: '10:00 a. m. – 12:30 p. m.' },
+      ],
+    });
+    expect(result.subject).toBe('Tus entradas para PED-1');
+    expect(result.text).toBe(
+      'Tus entradas están listas. Consúltalas y muestra el QR en la entrada: https://example.com/tickets?token=abc',
+    );
+    expect(result.html).toContain('#0B2559');
+    expect(result.html).toContain('MÁS ALLÁ DEL CONOCIMIENTO');
+    expect(result.html).toContain('27 de noviembre de 2026');
+    expect(result.html).toContain('10:00 a. m. – 12:30 p. m.');
+    expect(result.html).toContain('Tu código QR individual se muestra en tu entrada.');
+    expect(result.html).toContain('MOZILLA BOLIVIA');
+    expect(result.html).toContain('+591 62220214');
+    expect(result.html).toContain('display:block;padding:15px 24px');
+    expect(result.html).toContain('max-width:600px');
+  });
+
+  it('keeps the classic layout for events without the NEXT LEVEL variant', () => {
+    const result = renderTicketDelivery({
+      brand: DEFAULT_BRAND,
+      orderCode: 'PED-1',
+      link: 'https://example.com/tickets',
+      details: [{ label: 'Fecha', value: '27 de noviembre de 2026' }],
+    });
+    expect(result.html).toContain('Ver mis entradas');
+    expect(result.html).not.toContain('nl-button');
+    expect(result.html).not.toContain('MOZILLA BOLIVIA');
+  });
+
+  it('validates layout tokens and escapes admin copy', () => {
+    expect(resolveLayout({ variant: 'nextLevel', headerColor: 'red' })).toEqual({
+      variant: 'nextLevel',
+    });
+    expect(resolveLayout({ variant: 'bogus', rawHtml: '<b>x</b>' })).toEqual({});
+    const result = renderPaymentApproved({
+      brand: resolveBrand({
+        layout: { variant: 'nextLevel', tagline: '<script>alert(1)</script>' },
+      }),
+      orderCode: 'PED-1',
+    });
+    expect(result.html).not.toContain('<script>');
+    expect(result.html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(result.html).toContain('#0B2559');
   });
 });

@@ -1,5 +1,5 @@
 import type { BrandConfig } from './brand';
-import { renderLayout, type LayoutInput } from './layout';
+import { renderLayout, type LayoutInput, type LayoutRow } from './layout';
 import type { EmailOverrides } from './overrides';
 import { formatDate, formatMoney } from './shared';
 import type { RenderedEmail } from './types';
@@ -8,6 +8,8 @@ interface BaseInput {
   brand: BrandConfig;
   overrides?: EmailOverrides | null;
   currency?: string;
+  /** Real event data for the NEXT LEVEL details card; never hard-coded. */
+  details?: LayoutRow[];
 }
 
 function textWithFooter(text: string, footer: string | undefined): string {
@@ -16,9 +18,17 @@ function textWithFooter(text: string, footer: string | undefined): string {
 
 function render(
   input: BaseInput,
-  defaults: { subject: string; headline: string; intro: string; ctaLabel?: string },
-  details: Pick<LayoutInput, 'preheader' | 'eyebrow' | 'rows' | 'cta' | 'note'> & {
+  defaults: {
+    subject: string;
+    headline: string;
+    intro: string;
+    ctaLabel?: string;
+    greeting?: string;
+    badge?: LayoutInput['badge'];
+  },
+  details: Pick<LayoutInput, 'preheader' | 'eyebrow' | 'rows' | 'cta' | 'note' | 'helperNote'> & {
     text: string;
+    details?: LayoutRow[];
   },
 ): RenderedEmail {
   const subject = input.overrides?.subject ?? defaults.subject;
@@ -41,6 +51,10 @@ function render(
         : undefined,
       note: details.note,
       footer: input.overrides?.footer,
+      greeting: defaults.greeting,
+      badge: defaults.badge,
+      details: details.details,
+      helperNote: details.helperNote,
     }),
   };
 }
@@ -63,8 +77,11 @@ export function renderOrderCreated(input: OrderCreatedInput): RenderedEmail {
       headline: '¡Tu pedido fue creado!',
       intro,
       ctaLabel: 'Ver mi pedido',
+      greeting: 'Hola,',
+      badge: { label: 'Pedido creado', tone: 'info' },
     },
     {
+      details: input.details,
       preheader: `Completa el pago de tu pedido ${input.orderCode}`,
       eyebrow: 'Pedido creado',
       rows: [
@@ -94,8 +111,11 @@ export function renderReceiptReceived(input: ReceiptReceivedInput): RenderedEmai
       subject: `Comprobante recibido para ${input.orderCode}`,
       headline: 'Recibimos tu comprobante',
       intro,
+      greeting: 'Hola,',
+      badge: { label: 'Comprobante recibido', tone: 'info' },
     },
     {
+      details: input.details,
       preheader: 'Tu comprobante está en revisión',
       eyebrow: 'Comprobante recibido',
       rows: [
@@ -126,8 +146,11 @@ export function renderPaymentApproved(input: PaymentApprovedInput): RenderedEmai
       subject: `Pago aprobado para ${input.orderCode}`,
       headline: '¡Pago aprobado!',
       intro,
+      greeting: 'Hola,',
+      badge: { label: 'Pago aprobado', tone: 'success' },
     },
     {
+      details: input.details,
       preheader: 'Tu pago fue aprobado',
       eyebrow: 'Pago aprobado',
       rows: [
@@ -161,8 +184,11 @@ export function renderPaymentRejected(input: PaymentRejectedInput): RenderedEmai
       subject: `Comprobante rechazado para ${input.orderCode}`,
       headline: input.definitive ? 'Comprobante rechazado' : 'Necesitamos un nuevo comprobante',
       intro,
+      greeting: 'Hola,',
+      badge: { label: 'Comprobante rechazado', tone: 'danger' },
     },
     {
+      details: input.details,
       preheader: 'Hay un problema con tu comprobante',
       eyebrow: 'Comprobante rechazado',
       rows: [
@@ -193,9 +219,13 @@ export function renderTicketDelivery(input: TicketDeliveryInput): RenderedEmail 
       headline: '¡Tus entradas están listas!',
       intro,
       ctaLabel: 'Ver mis entradas',
+      greeting: 'Hola,',
+      badge: { label: 'Entrada confirmada', tone: 'success' },
     },
     {
+      details: input.details,
       preheader: 'Tus entradas con QR ya están disponibles',
+      helperNote: 'Tu código QR individual se muestra en tu entrada.',
       eyebrow: 'Entrega de entradas',
       rows: [
         ...(input.eventTitle ? [{ label: 'Evento', value: input.eventTitle }] : []),

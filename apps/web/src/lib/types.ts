@@ -69,12 +69,31 @@ export interface EmailOverrideView {
 
 export type EventEmailTemplatesView = Partial<Record<EventEmailType, EmailOverrideView>>;
 
+export type EmailLayoutVariantView = 'classic' | 'nextLevel';
+
+export interface EmailLayoutView {
+  variant?: EmailLayoutVariantView;
+  tagline?: string;
+  headerColor?: string;
+  ctaColor?: string;
+  accentColor?: string;
+  secondaryColor?: string;
+  highlightColor?: string;
+  borderColor?: string;
+  surfaceColor?: string;
+  detailsColor?: string;
+  organizer?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+}
+
 export interface EventEmailConfigView {
   brandName: string;
   primaryColor: string;
   textColor: string;
   backgroundColor: string;
   logoUrl: string | null;
+  layout: EmailLayoutView;
   templates: EventEmailTemplatesView;
   eventTitle: string;
   currency: string;

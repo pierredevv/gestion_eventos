@@ -1,4 +1,5 @@
 import type { BrandConfig } from './brand';
+import { renderNextLevelLayout } from './next-level-layout';
 import { escapeHtml, safeColor, safeHref } from './shared';
 
 export interface LayoutRow {
@@ -22,6 +23,11 @@ export interface LayoutInput {
   cta?: LayoutCta;
   note?: string;
   footer?: string;
+  /** Only rendered by the NEXT LEVEL layout; ignored by the classic one. */
+  greeting?: string;
+  badge?: { label: string; tone?: 'success' | 'info' | 'warning' | 'danger' };
+  details?: LayoutRow[];
+  helperNote?: string;
 }
 
 const SURFACE = '#ffffff';
@@ -34,6 +40,9 @@ const SOFT = '#fdf0e7';
  * Apple Mail without relying on external stylesheets or images.
  */
 export function renderLayout(input: LayoutInput): string {
+  if (input.brand.layout?.variant === 'nextLevel') {
+    return renderNextLevelLayout(input);
+  }
   const brand = input.brand;
   const primary = safeColor(brand.primaryColor, '#b8431a');
   const text = safeColor(brand.textColor, '#12141a');

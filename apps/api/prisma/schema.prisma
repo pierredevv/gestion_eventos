@@ -233,6 +233,8 @@ model EventEmailBranding {
   backgroundColor String?  @map("background_color") @db.VarChar(7)
   /// Validated JSON: { ORDER_CREATED: { subject?, headline?, ... }, ... }
   templates       Json?
+  /// Validated design tokens: { variant?, tagline?, headerColor?, ... }
+  layout          Json?
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)

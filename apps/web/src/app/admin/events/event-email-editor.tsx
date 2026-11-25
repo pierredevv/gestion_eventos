@@ -4,6 +4,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Field, Notice, buttonClass, inputClass, secondaryButtonClass } from '@/components/ui';
 import { apiFetch, apiUpload, ApiRequestError } from '@/lib/api';
 import type {
+  EmailLayoutView,
+  EmailLayoutVariantView,
   EmailOverrideView,
   EventEmailConfigView,
   EventEmailPreviewView,
@@ -24,6 +26,7 @@ interface Draft {
   primaryColor: string;
   textColor: string;
   backgroundColor: string;
+  layout: EmailLayoutView;
   templates: EventEmailTemplatesView;
 }
 
@@ -33,6 +36,7 @@ function draftFrom(config: EventEmailConfigView): Draft {
     primaryColor: config.primaryColor,
     textColor: config.textColor,
     backgroundColor: config.backgroundColor,
+    layout: config.layout ?? {},
     templates: config.templates,
   };
 }
@@ -45,6 +49,29 @@ function cleanOverride(override: EmailOverrideView | undefined): EmailOverrideVi
     if (value) cleaned[key] = value;
   }
   return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+}
+
+function cleanLayout(layout: EmailLayoutView): EmailLayoutView {
+  const cleaned: EmailLayoutView = {};
+  if (layout.variant) cleaned.variant = layout.variant;
+  for (const key of [
+    'tagline',
+    'organizer',
+    'contactPhone',
+    'contactEmail',
+    'headerColor',
+    'ctaColor',
+    'accentColor',
+    'secondaryColor',
+    'highlightColor',
+    'borderColor',
+    'surfaceColor',
+    'detailsColor',
+  ] as const) {
+    const value = layout[key]?.trim();
+    if (value) cleaned[key] = value;
+  }
+  return cleaned;
 }
 
 export function EventEmailEditor({ eventId }: { eventId: string }): ReactNode {
@@ -88,8 +115,15 @@ export function EventEmailEditor({ eventId }: { eventId: string }): ReactNode {
       ...(draft?.primaryColor ? { primaryColor: draft.primaryColor } : {}),
       ...(draft?.textColor ? { textColor: draft.textColor } : {}),
       ...(draft?.backgroundColor ? { backgroundColor: draft.backgroundColor } : {}),
+      layout: cleanLayout(draft?.layout ?? {}),
       templates,
     };
+  }
+
+  function setLayout(field: keyof EmailLayoutView, value: string): void {
+    setDraft((current) =>
+      current ? { ...current, layout: { ...current.layout, [field]: value } } : current,
+    );
   }
 
   function setOverride(field: keyof EmailOverrideView, value: string): void {
@@ -203,8 +237,8 @@ export function EventEmailEditor({ eventId }: { eventId: string }): ReactNode {
     <div className="border-line mt-6 border-t pt-5">
       <h4 className="text-sm font-semibold">Correos del evento</h4>
       <p className="text-ink-muted mt-1 text-xs">
-        Personaliza la identidad visual y el texto de cada correo. La vista previa usa datos de
-        ejemplo y no modifica los correos reales.
+        Personaliza la identidad visual y el texto de cada correo. La vista previa usa los datos
+        reales del evento con un pedido de ejemplo y no modifica los correos enviados.
       </p>
       {error ? (
         <div className="mt-3">
@@ -253,6 +287,79 @@ export function EventEmailEditor({ eventId }: { eventId: string }): ReactNode {
               />
             </Field>
           </div>
+          <Field label="Diseño del correo">
+            <select
+              className={inputClass}
+              value={draft.layout.variant ?? 'classic'}
+              onChange={(e) =>
+                setDraft((current) =>
+                  current
+                    ? {
+                        ...current,
+                        layout: {
+                          ...current.layout,
+                          variant: e.target.value as EmailLayoutVariantView,
+                        },
+                      }
+                    : current,
+                )
+              }
+            >
+              <option value="classic">Clásico (predeterminado)</option>
+              <option value="nextLevel">NEXT LEVEL</option>
+            </select>
+          </Field>
+          {draft.layout.variant === 'nextLevel' ? (
+            <>
+              <Field label="Eslogan del encabezado">
+                <input
+                  className={inputClass}
+                  maxLength={120}
+                  value={draft.layout.tagline ?? ''}
+                  onChange={(e) => setLayout('tagline', e.target.value)}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {(
+                  [
+                    ['headerColor', 'Azul marino'],
+                    ['ctaColor', 'Botón'],
+                    ['accentColor', 'Acento'],
+                    ['secondaryColor', 'Violeta'],
+                    ['highlightColor', 'Cian'],
+                    ['borderColor', 'Bordes'],
+                    ['surfaceColor', 'Tarjeta'],
+                    ['detailsColor', 'Detalles'],
+                  ] as const
+                ).map(([field, label]) => (
+                  <Field key={field} label={label}>
+                    <input
+                      type="color"
+                      className={`${inputClass} h-10 p-1`}
+                      value={draft.layout[field] ?? '#000000'}
+                      onChange={(e) => setLayout(field, e.target.value)}
+                    />
+                  </Field>
+                ))}
+              </div>
+              <Field label="Organizador">
+                <input
+                  className={inputClass}
+                  maxLength={120}
+                  value={draft.layout.organizer ?? ''}
+                  onChange={(e) => setLayout('organizer', e.target.value)}
+                />
+              </Field>
+              <Field label="Teléfono de contacto">
+                <input
+                  className={inputClass}
+                  maxLength={80}
+                  value={draft.layout.contactPhone ?? ''}
+                  onChange={(e) => setLayout('contactPhone', e.target.value)}
+                />
+              </Field>
+            </>
+          ) : null}
           <Field label="Logo del evento" hint="PNG, JPEG o WebP · máximo 2 MB">
             <input
               type="file"

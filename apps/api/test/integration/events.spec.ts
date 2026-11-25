@@ -333,6 +333,7 @@ describeWithDatabase('events and ticket types', () => {
       textColor: '#12141a',
       backgroundColor: '#f8f6f1',
       logoUrl: null,
+      layout: {},
       templates: {},
       eventTitle: 'Concierto de Verano 2027',
       currency: 'BOB',
@@ -352,6 +353,7 @@ describeWithDatabase('events and ticket types', () => {
         primaryColor: '#123456',
         textColor: '#654321',
         backgroundColor: '#fffeee',
+        layout: { variant: 'nextLevel', tagline: 'MÁS ALLÁ DEL CONOCIMIENTO' },
         templates: {
           TICKET_DELIVERY: {
             subject: 'Tus entradas del Festival',
@@ -364,6 +366,10 @@ describeWithDatabase('events and ticket types', () => {
 
     expect(updated.body.brandName).toBe('Festival');
     expect(updated.body.primaryColor).toBe('#123456');
+    expect(updated.body.layout).toEqual({
+      variant: 'nextLevel',
+      tagline: 'MÁS ALLÁ DEL CONOCIMIENTO',
+    });
     expect(updated.body.templates.TICKET_DELIVERY).toEqual({
       subject: 'Tus entradas del Festival',
       headline: 'Ya puedes entrar',
@@ -374,11 +380,17 @@ describeWithDatabase('events and ticket types', () => {
     expect(row.templates).toMatchObject({
       TICKET_DELIVERY: { subject: 'Tus entradas del Festival' },
     });
+    expect(row.layout).toMatchObject({ variant: 'nextLevel' });
 
     await manager.agent
       .patch(base)
       .set('X-CSRF-Token', manager.csrf)
       .send({ primaryColor: 'red' })
+      .expect(400);
+    await manager.agent
+      .patch(base)
+      .set('X-CSRF-Token', manager.csrf)
+      .send({ layout: { headerColor: 'red' } })
       .expect(400);
     await manager.agent
       .patch(base)
