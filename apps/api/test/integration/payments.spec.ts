@@ -287,6 +287,25 @@ describeWithDatabase('payments and manual review', () => {
     expect(jobs).toHaveLength(2);
   });
 
+  it('lists legacy import submissions without signing a missing receipt file', async () => {
+    const order = await createOrder(1, 'payment-order-legacy');
+    await submitReceipt(order.code, order.token, { declaredAmount: '100' }).expect(201);
+
+    await prisma.paymentSubmission.updateMany({
+      where: { payment: { orderId: order.id } },
+      data: { receiptFileKey: 'legacy/import/no-file/ORD-LEGACY' },
+    });
+
+    const reviewer = await signInReviewer();
+    const list = await reviewer.agent
+      .get('/api/v1/admin/payments/submissions')
+      .query({ status: 'PENDING', eventId })
+      .expect(200);
+
+    expect(list.body.total).toBe(1);
+    expect(list.body.items[0].receiptUrl).toBe('');
+  });
+
   it('prevents double approval with a conflict', async () => {
     const order = await createOrder(1, 'payment-order-double');
     const submitted = await submitReceipt(order.code, order.token, {

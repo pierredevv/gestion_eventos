@@ -31,6 +31,9 @@ import type {
   UploadedReceipt,
 } from './payments.types';
 
+/** Legacy imports deliberately point to a key with no stored object. */
+const LEGACY_RECEIPT_KEY_PREFIX = 'legacy/import/no-file/';
+
 const SUBMISSION_INCLUDE = {
   payment: {
     include: {
@@ -603,6 +606,15 @@ export class PaymentsService {
   private async toView(submission: SubmissionWithContext): Promise<PaymentSubmissionView> {
     const { payment } = submission;
     const { order } = payment;
+    // Supabase verifies object existence when signing, so legacy provenance
+    // rows must not be signed; they intentionally have no stored receipt.
+    const receiptUrl = submission.receiptFileKey.startsWith(LEGACY_RECEIPT_KEY_PREFIX)
+      ? ''
+      : await this.storage.createSignedUrl(
+          'receipts',
+          submission.receiptFileKey,
+          SIGNED_URL_TTL_SECONDS,
+        );
     return {
       id: submission.id,
       paymentId: submission.paymentId,
@@ -618,11 +630,7 @@ export class PaymentsService {
       paymentReference: payment.paymentReference,
       receiptMimeType: submission.receiptMimeType,
       receiptSize: submission.receiptSize,
-      receiptUrl: await this.storage.createSignedUrl(
-        'receipts',
-        submission.receiptFileKey,
-        SIGNED_URL_TTL_SECONDS,
-      ),
+      receiptUrl,
       reviewStatus: submission.reviewStatus,
       paymentStatus: payment.status,
       orderStatus: order.status,
