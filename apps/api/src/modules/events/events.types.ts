@@ -32,6 +32,8 @@ export interface EventView {
   capacity: number | null;
   /** When false, attendee name and email are optional at checkout. */
   requireAttendeeDetails: boolean;
+  /** When true, every attendee is derived from the buyer at checkout. */
+  personalPurchase: boolean;
   startDate: string;
   endDate: string;
   registrationStart: string;

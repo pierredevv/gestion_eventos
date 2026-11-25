@@ -107,4 +107,11 @@ export class UpdateEventDto {
   @IsOptional()
   @IsBoolean()
   requireAttendeeDetails?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Use the buyer as the attendee for every ticket',
+  })
+  @IsOptional()
+  @IsBoolean()
+  personalPurchase?: boolean;
 }

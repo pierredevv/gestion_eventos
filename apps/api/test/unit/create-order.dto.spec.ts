@@ -20,21 +20,35 @@ describe('CreateOrderDto attendee details', () => {
   it('accepts blank attendee fields so an event can make them optional', () => {
     const dto = plainToInstance(CreateOrderDto, basePayload());
     expect(validateSync(dto)).toEqual([]);
-    expect(dto.items[0]!.attendees[0]!.fullName).toBeUndefined();
-    expect(dto.items[0]!.attendees[0]!.email).toBeUndefined();
+    expect(dto.items[0]!.attendees![0]!.fullName).toBeUndefined();
+    expect(dto.items[0]!.attendees![0]!.email).toBeUndefined();
   });
 
   it('still validates an email when one is provided', () => {
     const payload = basePayload();
-    payload.items[0]!.attendees[0]!.email = 'correo-invalido';
+    payload.items[0]!.attendees![0]!.email = 'correo-invalido';
     const dto = plainToInstance(CreateOrderDto, payload);
     expect(validateSync(dto).length).toBeGreaterThan(0);
   });
 
   it('still validates a short name when one is provided', () => {
     const payload = basePayload();
-    payload.items[0]!.attendees[0]!.fullName = 'A';
+    payload.items[0]!.attendees![0]!.fullName = 'A';
     const dto = plainToInstance(CreateOrderDto, payload);
     expect(validateSync(dto).length).toBeGreaterThan(0);
+  });
+
+  it('accepts omitted attendees for personal purchases', () => {
+    const base = basePayload();
+    const payload = {
+      eventId: base.eventId,
+      buyerName: base.buyerName,
+      buyerEmail: base.buyerEmail,
+      buyerPhone: base.buyerPhone,
+      items: [{ ticketTypeId: base.items[0]!.ticketTypeId, quantity: 1 }],
+    };
+    const dto = plainToInstance(CreateOrderDto, payload);
+    expect(validateSync(dto)).toEqual([]);
+    expect(dto.items[0]!.attendees).toBeUndefined();
   });
 });

@@ -26,6 +26,7 @@ const emptyEvent = {
   registrationStart: '',
   registrationEnd: '',
   requireAttendeeDetails: true,
+  personalPurchase: false,
   publishNow: false,
 };
 
@@ -81,6 +82,7 @@ function EventForm({ onCreated }: { onCreated: () => void }): ReactNode {
         registrationStart: iso(form.registrationStart),
         registrationEnd: iso(form.registrationEnd),
         requireAttendeeDetails: form.requireAttendeeDetails,
+        personalPurchase: form.personalPurchase,
         publishNow: form.publishNow,
       });
       setForm(emptyEvent);
@@ -169,10 +171,26 @@ function EventForm({ onCreated }: { onCreated: () => void }): ReactNode {
         <label className="text-sm sm:col-span-2">
           <input
             type="checkbox"
-            checked={form.requireAttendeeDetails}
+            checked={form.requireAttendeeDetails && !form.personalPurchase}
+            disabled={form.personalPurchase}
             onChange={(e) => set('requireAttendeeDetails', e.target.checked)}
           />{' '}
           Exigir nombre y correo del asistente
+        </label>
+        <label className="text-sm sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={form.personalPurchase}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setForm((current) => ({
+                ...current,
+                personalPurchase: checked,
+                requireAttendeeDetails: checked ? false : current.requireAttendeeDetails,
+              }));
+            }}
+          />{' '}
+          Compras personales (el comprador es el asistente de todas las entradas)
         </label>
         <label className="text-sm sm:col-span-2">
           <input
@@ -335,6 +353,7 @@ function EventCard({ event, onChange }: { event: EventView; onChange: () => void
   const [requireAttendeeDetails, setRequireAttendeeDetails] = useState(
     event.requireAttendeeDetails,
   );
+  const [personalPurchase, setPersonalPurchase] = useState(event.personalPurchase);
   const [savingVenue, setSavingVenue] = useState(false);
   const [savingDetails, setSavingDetails] = useState(false);
 
@@ -345,7 +364,8 @@ function EventCard({ event, onChange }: { event: EventView; onChange: () => void
   useEffect(() => {
     setDescription(event.description);
     setRequireAttendeeDetails(event.requireAttendeeDetails);
-  }, [event.description, event.requireAttendeeDetails]);
+    setPersonalPurchase(event.personalPurchase);
+  }, [event.description, event.requireAttendeeDetails, event.personalPurchase]);
 
   async function saveVenue(): Promise<void> {
     setError('');
@@ -374,6 +394,7 @@ function EventCard({ event, onChange }: { event: EventView; onChange: () => void
       await apiSend(`/admin/events/${event.id}`, 'PATCH', {
         description: description.trim(),
         requireAttendeeDetails,
+        personalPurchase,
       });
       onChange();
     } catch (cause) {
@@ -441,10 +462,23 @@ function EventCard({ event, onChange }: { event: EventView; onChange: () => void
           <label className="mt-3 flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={requireAttendeeDetails}
+              checked={requireAttendeeDetails && !personalPurchase}
+              disabled={personalPurchase}
               onChange={(e) => setRequireAttendeeDetails(e.target.checked)}
             />
             Exigir nombre y correo del asistente
+          </label>
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={personalPurchase}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setPersonalPurchase(checked);
+                if (checked) setRequireAttendeeDetails(false);
+              }}
+            />
+            Compras personales (el comprador es el asistente de todas las entradas)
           </label>
           <button
             className={`${secondaryButtonClass} mt-3`}

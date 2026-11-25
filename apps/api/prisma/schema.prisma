@@ -202,6 +202,8 @@ model Event {
   capacity               Int?
   /// When false, attendee name and email are optional at checkout.
   requireAttendeeDetails Boolean     @default(true) @map("require_attendee_details")
+  /// When true, every attendee is derived from the buyer at checkout.
+  personalPurchase       Boolean     @default(false) @map("personal_purchase")
   startDate              DateTime    @map("start_date") @db.Timestamptz(6)
   endDate                DateTime    @map("end_date") @db.Timestamptz(6)
   registrationStart      DateTime    @map("registration_start") @db.Timestamptz(6)

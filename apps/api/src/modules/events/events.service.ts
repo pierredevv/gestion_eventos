@@ -103,6 +103,7 @@ export class EventsService {
         currency: dto.currency ?? this.config.get('DEFAULT_CURRENCY', { infer: true }),
         capacity: dto.capacity ?? null,
         requireAttendeeDetails: dto.requireAttendeeDetails ?? true,
+        personalPurchase: dto.personalPurchase ?? false,
         startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate),
         registrationStart: new Date(dto.registrationStart),
@@ -174,6 +175,7 @@ export class EventsService {
         ...(dto.requireAttendeeDetails !== undefined
           ? { requireAttendeeDetails: dto.requireAttendeeDetails }
           : {}),
+        ...(dto.personalPurchase !== undefined ? { personalPurchase: dto.personalPurchase } : {}),
         ...(dto.startDate !== undefined ? { startDate: new Date(dto.startDate) } : {}),
         ...(dto.endDate !== undefined ? { endDate: new Date(dto.endDate) } : {}),
         ...(dto.registrationStart !== undefined
@@ -549,6 +551,7 @@ export class EventsService {
       currency: event.currency,
       capacity: event.capacity,
       requireAttendeeDetails: event.requireAttendeeDetails,
+      personalPurchase: event.personalPurchase,
       startDate: event.startDate.toISOString(),
       endDate: event.endDate.toISOString(),
       registrationStart: event.registrationStart.toISOString(),

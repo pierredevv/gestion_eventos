@@ -744,6 +744,11 @@ export interface components {
              * @default true
              */
             requireAttendeeDetails: boolean;
+            /**
+             * @description Use the buyer as the attendee for every ticket
+             * @default false
+             */
+            personalPurchase: boolean;
             /** @default false */
             publishNow: boolean;
         };
@@ -762,6 +767,8 @@ export interface components {
             registrationEnd?: string;
             /** @description Require attendee name and email at checkout */
             requireAttendeeDetails?: boolean;
+            /** @description Use the buyer as the attendee for every ticket */
+            personalPurchase?: boolean;
         };
         CreateTicketTypeDto: {
             /** @example Entrada General */
@@ -824,7 +831,8 @@ export interface components {
             /** Format: uuid */
             ticketTypeId: string;
             quantity: number;
-            attendees: components["schemas"]["AttendeeDto"][];
+            /** @description Omit when the event enables personal purchases */
+            attendees?: components["schemas"]["AttendeeDto"][];
         };
         CreateOrderDto: {
             /** Format: uuid */

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -14,9 +15,8 @@ import {
 } from '@prisma/client';
 import { AuditService } from '../../common/audit/audit.service';
 import type { AppEnv } from '../../common/config/env';
-import { EmailService } from '../../common/email/email.service';
 import type { RequestContext } from '../../common/http/request-context';
-import { releaseStock, reserveStock } from '../../common/inventory/inventory-sql';
+import { releaseStock, reserveStockBatch } from '../../common/inventory/inventory-sql';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { INTERACTIVE_TRANSACTION_OPTIONS } from '../../common/prisma/transaction-options';
 import { generateOpaqueToken, hashToken } from '../../common/security/tokens';
@@ -54,10 +54,11 @@ function orderCode(): string {
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    private readonly email: EmailService,
     private readonly config: ConfigService<AppEnv, true>,
   ) {}
 
@@ -70,6 +71,7 @@ export class OrdersService {
     buyerId: string | null,
     context: RequestContext,
   ): Promise<CreatedOrderResult> {
+    const startedAt = Date.now();
     const idempotencyKey = dto.idempotencyKey;
     if (idempotencyKey) {
       const existing = await this.prisma.order.findUnique({
@@ -85,19 +87,38 @@ export class OrdersService {
         };
       }
     }
+    const afterIdempotency = Date.now();
 
-    const event = await this.prisma.event.findUnique({ where: { id: dto.eventId } });
+    const ticketTypeIds = dto.items.map((item) => item.ticketTypeId);
+    if (new Set(ticketTypeIds).size !== ticketTypeIds.length) {
+      throw new BadRequestException({
+        code: 'DUPLICATE_TICKET_TYPE',
+        message: 'Each ticket type can appear only once per order',
+      });
+    }
+
+    const event = await this.prisma.event.findUnique({
+      where: { id: dto.eventId },
+      include: { ticketTypes: { where: { id: { in: ticketTypeIds } } } },
+    });
     if (!event || event.status !== 'PUBLISHED') {
       throw new NotFoundException({
         code: 'EVENT_NOT_AVAILABLE',
         message: 'Event is not available',
       });
     }
+    const ticketTypes = event.ticketTypes;
+    const afterCatalog = Date.now();
 
-    const ticketTypeIds = [...new Set(dto.items.map((item) => item.ticketTypeId))];
-    const ticketTypes = await this.prisma.ticketType.findMany({
-      where: { id: { in: ticketTypeIds }, eventId: dto.eventId },
-    });
+    const attendeesForItem = (item: (typeof dto.items)[number]) =>
+      event.personalPurchase
+        ? Array.from({ length: item.quantity }, () => ({
+            fullName: dto.buyerName,
+            email: dto.buyerEmail,
+            phone: dto.buyerPhone,
+            documentNumber: undefined,
+          }))
+        : (item.attendees ?? []);
 
     for (const item of dto.items) {
       const ticketType = ticketTypes.find((type) => type.id === item.ticketTypeId);
@@ -117,15 +138,17 @@ export class OrdersService {
           message: `Quantity must be between ${ticketType.minPerOrder} and ${ticketType.maxPerOrder} for ${ticketType.name}`,
         });
       }
-      if (item.attendees.length !== item.quantity) {
+      const attendees = attendeesForItem(item);
+      if (!event.personalPurchase && attendees.length !== item.quantity) {
         throw new BadRequestException({
           code: 'ATTENDEE_COUNT_MISMATCH',
           message: 'Each ticket needs exactly one attendee',
         });
       }
       if (
+        !event.personalPurchase &&
         event.requireAttendeeDetails &&
-        item.attendees.some((attendee) => !attendee.fullName || !attendee.email)
+        attendees.some((attendee) => !attendee.fullName || !attendee.email)
       ) {
         throw new BadRequestException({
           code: 'ATTENDEE_DETAILS_REQUIRED',
@@ -143,16 +166,20 @@ export class OrdersService {
     let created: OrderWithDetails;
     try {
       created = await this.prisma.$transaction(async (tx) => {
-        // Reserve every item first. If any UPDATE fails, throwing rolls back
-        // all earlier reservations in this transaction.
-        for (const item of dto.items) {
-          const reserved = await reserveStock(tx, item.ticketTypeId, item.quantity);
-          if (reserved !== 1) {
-            throw new ConflictException({
-              code: 'INSUFFICIENT_STOCK',
-              message: 'One or more ticket types no longer have enough stock',
-            });
-          }
+        // One conditional UPDATE reserves every item; a partial match rolls
+        // the whole transaction back.
+        const reserved = await reserveStockBatch(
+          tx,
+          dto.items.map((item) => ({
+            ticketTypeId: item.ticketTypeId,
+            quantity: item.quantity,
+          })),
+        );
+        if (reserved !== dto.items.length) {
+          throw new ConflictException({
+            code: 'INSUFFICIENT_STOCK',
+            message: 'One or more ticket types no longer have enough stock',
+          });
         }
 
         let subtotal = new Prisma.Decimal(0);
@@ -188,7 +215,7 @@ export class OrdersService {
                   unitPrice: ticketType.price,
                   subtotal: ticketType.price.mul(item.quantity),
                   attendees: {
-                    create: item.attendees.map((attendee, index) => ({
+                    create: attendeesForItem(item).map((attendee, index) => ({
                       unitIndex: index + 1,
                       fullName: attendee.fullName ?? null,
                       email: attendee.email ?? null,
@@ -237,43 +264,40 @@ export class OrdersService {
       }
       throw error;
     }
+    const afterTransaction = Date.now();
 
-    await this.audit.record({
-      action: 'ORDER_CREATED',
-      entityType: 'order',
-      entityId: created.id,
-      userId: buyerId ?? undefined,
-      actorLabel: created.buyerEmail,
-      ...context,
-      metadata: { orderCode: created.orderCode, total: money(created.totalAmount) },
-    });
-
-    // The notification worker (F7) delivers the link; enqueue it here so the
-    // order is never lost if the worker is down.
-    await this.prisma.notificationJob.create({
-      data: {
-        type: 'ORDER_CREATED',
-        recipient: created.buyerEmail,
-        dedupeKey: `order-created-${created.id}`,
-        payload: {
-          orderCode: created.orderCode,
-          eventTitle: event.title,
-          expiresAt: expiresAt.toISOString(),
-          accessToken,
-        } as Prisma.InputJsonValue,
-      },
-    });
-
-    // Best effort: the response must not wait on the email provider. The
-    // notification job above is the durable delivery path, so a slow or failing
-    // SMTP server must never delay the buyer's redirect to the order page.
-    void this.email
-      .send({
-        to: created.buyerEmail,
-        subject: 'Tu pedido ha sido creado',
-        text: `Pedido ${created.orderCode}. Completa el pago antes de ${expiresAt.toISOString()}.`,
-      })
-      .catch(() => undefined);
+    await Promise.all([
+      this.audit.record({
+        action: 'ORDER_CREATED',
+        entityType: 'order',
+        entityId: created.id,
+        userId: buyerId ?? undefined,
+        actorLabel: created.buyerEmail,
+        ...context,
+        metadata: { orderCode: created.orderCode, total: money(created.totalAmount) },
+      }),
+      // The notification worker delivers the link; enqueue it here so the
+      // order is never lost if the worker is down.
+      this.prisma.notificationJob.create({
+        data: {
+          type: 'ORDER_CREATED',
+          recipient: created.buyerEmail,
+          dedupeKey: `order-created-${created.id}`,
+          payload: {
+            orderCode: created.orderCode,
+            eventTitle: event.title,
+            expiresAt: expiresAt.toISOString(),
+            accessToken,
+          } as Prisma.InputJsonValue,
+        },
+      }),
+    ]);
+    this.logger.debug(
+      `create order: idempotency=${afterIdempotency - startedAt}ms ` +
+        `catalog=${afterCatalog - afterIdempotency}ms ` +
+        `transaction=${afterTransaction - afterCatalog}ms ` +
+        `followup=${Date.now() - afterTransaction}ms`,
+    );
 
     return {
       order: this.toView(created),

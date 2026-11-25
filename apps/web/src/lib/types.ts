@@ -32,6 +32,7 @@ export interface EventView {
   currency: string;
   capacity: number | null;
   requireAttendeeDetails: boolean;
+  personalPurchase: boolean;
   startDate: string;
   endDate: string;
   registrationStart: string;

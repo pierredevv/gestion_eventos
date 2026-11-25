@@ -232,6 +232,92 @@ describeWithDatabase('orders and inventory', () => {
     expect(storedAttendee.email).toBeNull();
   });
 
+  it('derives attendees from the buyer and ignores client attendees for personal purchases', async () => {
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { personalPurchase: true },
+    });
+
+    const payload = {
+      ...orderPayload(2, 'idem-personal-001'),
+      items: [
+        {
+          ticketTypeId,
+          quantity: 2,
+          attendees: [{ fullName: 'Intruso', email: 'intruso@example.com' }],
+        },
+      ],
+    };
+
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/orders')
+      .send(payload)
+      .expect(201);
+
+    expect(response.body.order.items[0].attendees).toHaveLength(2);
+    for (const attendee of response.body.order.items[0].attendees) {
+      expect(attendee.fullName).toBe('Juan Perez');
+      expect(attendee.email).toBe('juan@example.com');
+      expect(attendee.phone).toBe('+59170000000');
+    }
+
+    const stored = await prisma.attendee.findMany({
+      where: { orderItem: { orderId: response.body.order.id } },
+    });
+    expect(stored.map((attendee) => attendee.fullName)).toEqual(['Juan Perez', 'Juan Perez']);
+  });
+
+  it('reserves multiple ticket types in one atomic batch', async () => {
+    const second = await prisma.ticketType.create({
+      data: {
+        eventId,
+        name: 'VIP',
+        price: 200,
+        currency: 'BOB',
+        capacity: 5,
+        minPerOrder: 1,
+        maxPerOrder: 10,
+        salesStart: new Date('2026-01-01T00:00:00Z'),
+        salesEnd: new Date('2028-01-01T19:00:00Z'),
+      },
+    });
+    const payload = orderPayload(1, 'idem-batch-001');
+    payload.items.push({
+      ticketTypeId: second.id,
+      quantity: 2,
+      attendees: [
+        { fullName: 'Attendee VIP 1', email: 'vip1@example.com' },
+        { fullName: 'Attendee VIP 2', email: 'vip2@example.com' },
+      ],
+    });
+
+    await request(app.getHttpServer()).post('/api/v1/orders').send(payload).expect(201);
+
+    for (const [id, quantity] of [
+      [ticketTypeId, 1],
+      [second.id, 2],
+    ] as const) {
+      const stored = await prisma.ticketType.findUniqueOrThrow({ where: { id } });
+      expect(stored.reservedQuantity).toBe(quantity);
+    }
+  });
+
+  it('rejects duplicate ticket types in one order', async () => {
+    const payload = orderPayload(1, 'idem-duplicate-001');
+    payload.items.push({
+      ticketTypeId,
+      quantity: 1,
+      attendees: [{ fullName: 'Attendee 2', email: 'attendee2@example.com' }],
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/orders')
+      .send(payload)
+      .expect(400);
+
+    expect(response.body.code).toBe('DUPLICATE_TICKET_TYPE');
+  });
+
   it('rejects concurrent orders that exceed available stock', async () => {
     const results = await Promise.all([
       request(app.getHttpServer()).post('/api/v1/orders').send(orderPayload(4, 'idem-race-001')),

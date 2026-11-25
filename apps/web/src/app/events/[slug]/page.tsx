@@ -105,6 +105,7 @@ export default function EventDetailPage(): ReactNode {
   );
   const currency = event?.currency ?? cartRows[0]?.ticketType.currency ?? 'BOB';
   const requireAttendeeDetails = event?.requireAttendeeDetails ?? true;
+  const personalPurchase = event?.personalPurchase ?? false;
 
   function quantityFor(ticketTypeId: string): number {
     return cart.find((item) => item.ticketTypeId === ticketTypeId)?.quantity ?? 0;
@@ -165,7 +166,7 @@ export default function EventDetailPage(): ReactNode {
       if (email && (!hasEmail(email) || email.length > 254)) return true;
       return false;
     };
-    if (cartRows.some((row) => row.attendees.some(attendeeInvalid))) {
+    if (!personalPurchase && cartRows.some((row) => row.attendees.some(attendeeInvalid))) {
       setError(
         requireAttendeeDetails
           ? 'Completa el nombre y un correo válido para cada asistente.'
@@ -183,10 +184,14 @@ export default function EventDetailPage(): ReactNode {
         items: cartRows.map((row) => ({
           ticketTypeId: row.ticketTypeId,
           quantity: row.quantity,
-          attendees: row.attendees.map((attendee) => ({
-            ...(attendee.fullName.trim() ? { fullName: attendee.fullName.trim() } : {}),
-            ...(attendee.email.trim() ? { email: attendee.email.trim().toLowerCase() } : {}),
-          })),
+          ...(personalPurchase
+            ? {}
+            : {
+                attendees: row.attendees.map((attendee) => ({
+                  ...(attendee.fullName.trim() ? { fullName: attendee.fullName.trim() } : {}),
+                  ...(attendee.email.trim() ? { email: attendee.email.trim().toLowerCase() } : {}),
+                })),
+              }),
         })),
       });
       sessionStorage.setItem(`order:${result.order.orderCode}`, result.accessToken);
@@ -373,55 +378,70 @@ export default function EventDetailPage(): ReactNode {
               </div>
             </div>
 
-            <div className="border-line space-y-5 border-t pt-5">
-              <h3 className="text-sm font-semibold">Asistentes</h3>
-              {cartRows.length === 0 ? (
+            {personalPurchase ? (
+              <div className="border-line space-y-2 border-t pt-5">
+                <h3 className="text-sm font-semibold">Asistentes</h3>
                 <p className="text-ink-muted text-xs">
-                  Los campos aparecerán al seleccionar cantidades.
+                  Tus entradas se emitirán con el nombre, el correo y el teléfono del comprador.
+                  Puedes comprar varias entradas para ti mismo.
                 </p>
-              ) : null}
-              {cartRows.map((row) => (
-                <div
-                  key={row.ticketTypeId}
-                  data-testid="attendee-group"
-                  data-ticket-type-name={row.ticketType.name}
-                  className="space-y-3"
-                >
-                  <p className="text-ink-muted text-xs font-semibold uppercase">
-                    {row.ticketType.name}
+              </div>
+            ) : (
+              <div className="border-line space-y-5 border-t pt-5">
+                <h3 className="text-sm font-semibold">Asistentes</h3>
+                {cartRows.length === 0 ? (
+                  <p className="text-ink-muted text-xs">
+                    Los campos aparecerán al seleccionar cantidades.
                   </p>
-                  {row.attendees.map((attendee, index) => (
-                    <div key={index} className="grid gap-3 sm:grid-cols-2">
-                      <Field
-                        label={`Nombre del asistente ${index + 1} de ${row.ticketType.name}${requireAttendeeDetails ? '' : ' (opcional)'}`}
-                      >
-                        <input
-                          className={inputClass}
-                          data-testid={`attendee-name-${row.ticketTypeId}-${index}`}
-                          value={attendee.fullName}
-                          onChange={(change) =>
-                            updateAttendee(row.ticketTypeId, index, 'fullName', change.target.value)
-                          }
-                        />
-                      </Field>
-                      <Field
-                        label={`Correo del asistente ${index + 1} de ${row.ticketType.name}${requireAttendeeDetails ? '' : ' (opcional)'}`}
-                      >
-                        <input
-                          className={inputClass}
-                          data-testid={`attendee-email-${row.ticketTypeId}-${index}`}
-                          type="email"
-                          value={attendee.email}
-                          onChange={(change) =>
-                            updateAttendee(row.ticketTypeId, index, 'email', change.target.value)
-                          }
-                        />
-                      </Field>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
+                ) : null}
+                {cartRows.map((row) => (
+                  <div
+                    key={row.ticketTypeId}
+                    data-testid="attendee-group"
+                    data-ticket-type-name={row.ticketType.name}
+                    className="space-y-3"
+                  >
+                    <p className="text-ink-muted text-xs font-semibold uppercase">
+                      {row.ticketType.name}
+                    </p>
+                    {row.attendees.map((attendee, index) => (
+                      <div key={index} className="grid gap-3 sm:grid-cols-2">
+                        <Field
+                          label={`Nombre del asistente ${index + 1} de ${row.ticketType.name}${requireAttendeeDetails ? '' : ' (opcional)'}`}
+                        >
+                          <input
+                            className={inputClass}
+                            data-testid={`attendee-name-${row.ticketTypeId}-${index}`}
+                            value={attendee.fullName}
+                            onChange={(change) =>
+                              updateAttendee(
+                                row.ticketTypeId,
+                                index,
+                                'fullName',
+                                change.target.value,
+                              )
+                            }
+                          />
+                        </Field>
+                        <Field
+                          label={`Correo del asistente ${index + 1} de ${row.ticketType.name}${requireAttendeeDetails ? '' : ' (opcional)'}`}
+                        >
+                          <input
+                            className={inputClass}
+                            data-testid={`attendee-email-${row.ticketTypeId}-${index}`}
+                            type="email"
+                            value={attendee.email}
+                            onChange={(change) =>
+                              updateAttendee(row.ticketTypeId, index, 'email', change.target.value)
+                            }
+                          />
+                        </Field>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {error ? <Notice>{error}</Notice> : null}
             {submitting ? (

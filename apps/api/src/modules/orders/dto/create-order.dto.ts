@@ -83,13 +83,17 @@ export class OrderItemDto {
   @Max(100)
   quantity: number;
 
-  @ApiProperty({ type: [AttendeeDto] })
+  @ApiPropertyOptional({
+    type: [AttendeeDto],
+    description: 'Omit when the event enables personal purchases',
+  })
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
   @Type(() => AttendeeDto)
-  attendees: AttendeeDto[];
+  attendees?: AttendeeDto[];
 }
 
 export class CreateOrderDto {

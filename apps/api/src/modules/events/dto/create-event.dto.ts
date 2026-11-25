@@ -106,6 +106,14 @@ export class CreateEventDto {
   @IsBoolean()
   requireAttendeeDetails?: boolean;
 
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Use the buyer as the attendee for every ticket',
+  })
+  @IsOptional()
+  @IsBoolean()
+  personalPurchase?: boolean;
+
   @ApiPropertyOptional({ default: false })
   @IsOptional()
   @IsBoolean()
