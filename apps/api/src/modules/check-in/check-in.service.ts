@@ -13,7 +13,13 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { INTERACTIVE_TRANSACTION_OPTIONS } from '../../common/prisma/transaction-options';
 import { hashToken } from '../../common/security/tokens';
 import type { CheckInDto } from './dto/check-in.dto';
-import type { CheckInPreview, CheckInRecord, CheckInResult } from './check-in.types';
+import type { SearchByNameDto } from './dto/search-by-name.dto';
+import type {
+  CheckInCandidate,
+  CheckInPreview,
+  CheckInRecord,
+  CheckInResult,
+} from './check-in.types';
 
 const TICKET_INCLUDE = {
   attendee: true,
@@ -23,6 +29,32 @@ const TICKET_INCLUDE = {
 } satisfies Prisma.TicketInclude;
 
 type TicketWithContext = Prisma.TicketGetPayload<{ include: typeof TICKET_INCLUDE }>;
+
+type CandidateRow = {
+  ticketId: string;
+  ticketCode: string;
+  attendeeName: string;
+  ticketTypeName: string;
+  status: string;
+  eventId: string;
+  eventTitle: string;
+  usedAt: Date | null;
+};
+
+/**
+ * Postgres `translate` keeps this lookup accent-insensitive without adding an
+ * extension or a generated column. Both translation maps must have equal length.
+ */
+const NORMALIZED_ATTENDEE_NAME = Prisma.sql`lower(translate(coalesce(a.full_name, o.buyer_name), 'ÁÉÍÓÚÜÑÀÈÌÒÙÇáéíóúüñàèìòùç', 'AEIOUUNAEIOUCaeiouunaeiouc'))`;
+
+function normalizeAttendeeName(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 @Injectable()
 export class CheckInService {
@@ -138,6 +170,19 @@ export class CheckInService {
     };
   }
 
+  async searchByName(dto: SearchByNameDto): Promise<CheckInCandidate[]> {
+    const term = normalizeAttendeeName(dto.attendeeName);
+    const exact = await this.queryCandidates(
+      dto.eventId,
+      Prisma.sql`${NORMALIZED_ATTENDEE_NAME} = ${term}`,
+    );
+    if (exact.length > 0) return exact;
+    return this.queryCandidates(
+      dto.eventId,
+      Prisma.sql`position(${term} in ${NORMALIZED_ATTENDEE_NAME}) > 0`,
+    );
+  }
+
   async listByEvent(eventId: string): Promise<CheckInRecord[]> {
     const records = await this.prisma.checkIn.findMany({
       where: { ticket: { order: { eventId } } },
@@ -151,6 +196,41 @@ export class CheckInService {
       ticketTypeName: record.ticket.ticketType.name,
       checkedById: record.checkedById,
       checkedAt: record.checkedAt.toISOString(),
+    }));
+  }
+
+  private async queryCandidates(
+    eventId: string,
+    condition: Prisma.Sql,
+  ): Promise<CheckInCandidate[]> {
+    const rows = await this.prisma.$queryRaw<CandidateRow[]>(Prisma.sql`
+      SELECT t.id::text AS "ticketId",
+             t.ticket_code AS "ticketCode",
+             coalesce(a.full_name, o.buyer_name) AS "attendeeName",
+             tt.name AS "ticketTypeName",
+             t.status::text AS "status",
+             e.id::text AS "eventId",
+             e.title AS "eventTitle",
+             t.used_at AS "usedAt"
+      FROM tickets t
+      JOIN orders o ON o.id = t.order_id
+      JOIN events e ON e.id = o.event_id
+      JOIN ticket_types tt ON tt.id = t.ticket_type_id
+      LEFT JOIN attendees a ON a.id = t.attendee_id
+      WHERE o.event_id = ${eventId}::uuid
+        AND ${condition}
+      ORDER BY coalesce(a.full_name, o.buyer_name), t.ticket_code
+      LIMIT 20
+    `);
+    return rows.map((row) => ({
+      ticketId: row.ticketId,
+      ticketCode: row.ticketCode,
+      attendeeName: row.attendeeName,
+      ticketTypeName: row.ticketTypeName,
+      status: row.status as TicketStatus,
+      eventId: row.eventId,
+      eventTitle: row.eventTitle,
+      alreadyUsedAt: row.usedAt ? row.usedAt.toISOString() : null,
     }));
   }
 

@@ -1,5 +1,16 @@
 import type { TicketStatus } from '@prisma/client';
 
+export interface CheckInCandidate {
+  ticketId: string;
+  ticketCode: string;
+  attendeeName: string;
+  ticketTypeName: string;
+  status: TicketStatus;
+  eventId: string;
+  eventTitle: string;
+  alreadyUsedAt: string | null;
+}
+
 export interface CheckInPreview {
   ticketId: string;
   ticketCode: string;

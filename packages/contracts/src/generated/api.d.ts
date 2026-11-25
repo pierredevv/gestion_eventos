@@ -638,6 +638,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/check-in/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find event tickets by normalized attendee name */
+        post: operations["CheckInController_searchByName"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/check-in": {
         parameters: {
             query?: never;
@@ -977,6 +994,15 @@ export interface components {
             override?: boolean;
             /** @description Required when override is true */
             overrideReason?: string;
+        };
+        SearchByNameDto: {
+            /**
+             * Format: uuid
+             * @description Event where the attendee must be searched
+             */
+            eventId: string;
+            /** @example Ana Rojas */
+            attendeeName: string;
         };
     };
     responses: never;
@@ -1865,6 +1891,27 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CheckInDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CheckInController_searchByName: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchByNameDto"];
             };
         };
         responses: {

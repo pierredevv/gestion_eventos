@@ -333,6 +333,79 @@ describeWithDatabase('check-in', () => {
     expect(audit).not.toBeNull();
   });
 
+  it('finds a ticket by normalized attendee name without creating a check-in', async () => {
+    const { eventId, ticketTypeId } = await seedEvent(-30, 150);
+    const ticket = await issuedTicket(eventId, ticketTypeId, 'checkin-order-name');
+    const staff = await login(STAFF_EMAIL, STAFF_PASSWORD);
+
+    const row = await prisma.ticket.findUniqueOrThrow({ where: { id: ticket.ticketId } });
+    await prisma.attendee.update({
+      where: { id: row.attendeeId },
+      data: { fullName: 'Ana María Ñoño' },
+    });
+
+    const exact = await staff.agent
+      .post('/api/v1/admin/check-in/search')
+      .set('X-CSRF-Token', staff.csrf)
+      .send({ eventId, attendeeName: '  ana   maria nono ' })
+      .expect(201);
+    expect(exact.body).toHaveLength(1);
+    expect(exact.body[0]).toMatchObject({
+      ticketId: ticket.ticketId,
+      ticketCode: ticket.ticketCode,
+      attendeeName: 'Ana María Ñoño',
+      status: 'VALID',
+      eventId,
+      alreadyUsedAt: null,
+    });
+
+    const partial = await staff.agent
+      .post('/api/v1/admin/check-in/search')
+      .set('X-CSRF-Token', staff.csrf)
+      .send({ eventId, attendeeName: 'nono' })
+      .expect(201);
+    expect(partial.body).toHaveLength(1);
+    expect(partial.body[0].ticketId).toBe(ticket.ticketId);
+
+    const preview = await staff.agent
+      .post('/api/v1/admin/check-in/preview')
+      .set('X-CSRF-Token', staff.csrf)
+      .send({ ticketCode: ticket.ticketCode })
+      .expect(201);
+    expect(preview.body.ticketId).toBe(ticket.ticketId);
+
+    expect(await prisma.checkIn.count()).toBe(0);
+  });
+
+  it('keeps ambiguous name searches read-only and scoped to the selected event', async () => {
+    const first = await seedEvent(-30, 150);
+    await confirmOrder(first.eventId, first.ticketTypeId, 'checkin-order-ambiguous-1');
+    await confirmOrder(first.eventId, first.ticketTypeId, 'checkin-order-ambiguous-2');
+    await app.get(NotificationWorkerService).run();
+    const staff = await login(STAFF_EMAIL, STAFF_PASSWORD);
+
+    const matchingTickets = await prisma.ticket.count({
+      where: { order: { eventId: first.eventId } },
+    });
+    expect(matchingTickets).toBe(2);
+
+    const ambiguous = await staff.agent
+      .post('/api/v1/admin/check-in/search')
+      .set('X-CSRF-Token', staff.csrf)
+      .send({ eventId: first.eventId, attendeeName: 'Ana Rojas' })
+      .expect(201);
+    expect(ambiguous.body).toHaveLength(2);
+
+    const other = await seedEvent(-30, 150);
+    const outside = await staff.agent
+      .post('/api/v1/admin/check-in/search')
+      .set('X-CSRF-Token', staff.csrf)
+      .send({ eventId: other.eventId, attendeeName: 'Ana Rojas' })
+      .expect(201);
+    expect(outside.body).toEqual([]);
+    expect(await prisma.checkIn.count()).toBe(0);
+  });
+
   it('allows exactly one check-in when two scanners race on the same ticket', async () => {
     const { eventId, ticketTypeId } = await seedEvent(-30, 150);
     const ticket = await issuedTicket(eventId, ticketTypeId, 'checkin-order-race');

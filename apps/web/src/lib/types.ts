@@ -273,6 +273,17 @@ export interface AttendanceReport {
   }>;
 }
 
+export interface CheckInCandidate {
+  ticketId: string;
+  ticketCode: string;
+  attendeeName: string;
+  ticketTypeName: string;
+  status: 'VALID' | 'USED' | 'CANCELLED';
+  eventId: string;
+  eventTitle: string;
+  alreadyUsedAt: string | null;
+}
+
 export interface CheckInPreview {
   ticketId: string;
   ticketCode: string;

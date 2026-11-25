@@ -5,6 +5,7 @@ import { Badge, buttonClass, EmptyState, Field, inputClass, Notice } from '@/com
 import { apiFetch, apiSend, ApiRequestError } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import type {
+  CheckInCandidate,
   CheckInPreview,
   CheckInRecord,
   CheckInResult,
@@ -17,6 +18,9 @@ export default function AdminCheckInPage(): ReactNode {
   const [eventId, setEventId] = useState('');
   const [records, setRecords] = useState<CheckInRecord[]>([]);
   const [scanned, setScanned] = useState('');
+  const [nameQuery, setNameQuery] = useState('');
+  const [candidates, setCandidates] = useState<CheckInCandidate[]>([]);
+  const [searching, setSearching] = useState(false);
   const [preview, setPreview] = useState<CheckInPreview | null>(null);
   const [result, setResult] = useState<CheckInResult | null>(null);
   const [override, setOverride] = useState(false);
@@ -56,28 +60,69 @@ export default function AdminCheckInPage(): ReactNode {
     };
   }, [eventId, result]);
 
-  function identifier(): { token?: string; ticketCode?: string } {
-    const value = scanned.trim();
-    if (value.startsWith('EVT1:')) return { token: value };
-    return { ticketCode: value };
+  function identifier(value = scanned): { token?: string; ticketCode?: string } {
+    const normalized = value.trim();
+    if (normalized.startsWith('EVT1:')) return { token: normalized };
+    return { ticketCode: normalized };
   }
 
-  async function loadPreview(): Promise<void> {
-    if (!scanned.trim()) return;
+  async function loadPreview(value = scanned): Promise<void> {
+    if (!value.trim()) return;
     setBusy(true);
     setError('');
     setResult(null);
     setPreview(null);
     try {
-      setPreview(await apiSend<CheckInPreview>('/admin/check-in/preview', 'POST', identifier()));
+      setPreview(
+        await apiSend<CheckInPreview>('/admin/check-in/preview', 'POST', identifier(value)),
+      );
     } catch (cause) {
       setError(
         cause instanceof ApiRequestError
           ? `${cause.message}${cause.code ? ` (${cause.code})` : ''}`
-          : 'No se pudo leer el QR',
+          : 'No se pudo leer la entrada',
       );
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function selectCandidate(candidate: CheckInCandidate): Promise<void> {
+    setScanned(candidate.ticketCode);
+    setNameQuery(candidate.attendeeName);
+    setCandidates([]);
+    await loadPreview(candidate.ticketCode);
+  }
+
+  async function searchByName(): Promise<void> {
+    if (!eventId || !nameQuery.trim()) return;
+    setSearching(true);
+    setError('');
+    setResult(null);
+    setPreview(null);
+    setCandidates([]);
+    try {
+      const matches = await apiSend<CheckInCandidate[]>('/admin/check-in/search', 'POST', {
+        eventId,
+        attendeeName: nameQuery,
+      });
+      if (matches.length === 0) {
+        setError('No se encontró ninguna entrada con ese nombre en el evento seleccionado.');
+        return;
+      }
+      if (matches.length === 1 && matches[0]) {
+        await selectCandidate(matches[0]);
+        return;
+      }
+      setCandidates(matches);
+    } catch (cause) {
+      setError(
+        cause instanceof ApiRequestError
+          ? `${cause.message}${cause.code ? ` (${cause.code})` : ''}`
+          : 'No se pudo buscar por nombre',
+      );
+    } finally {
+      setSearching(false);
     }
   }
 
@@ -93,6 +138,8 @@ export default function AdminCheckInPage(): ReactNode {
       );
       setPreview(null);
       setScanned('');
+      setNameQuery('');
+      setCandidates([]);
       setOverride(false);
       setOverrideReason('');
     } catch (cause) {
@@ -110,7 +157,8 @@ export default function AdminCheckInPage(): ReactNode {
     <div>
       <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Control de acceso</h1>
       <p className="text-ink-muted mt-2 text-sm">
-        Escanea el QR o escribe el código de la entrada. Cada ticket permite un solo ingreso.
+        Escanea el QR, escribe el código de la entrada o busca por nombre del asistente. Cada ticket
+        permite un solo ingreso.
       </p>
 
       {error ? (
@@ -137,7 +185,10 @@ export default function AdminCheckInPage(): ReactNode {
               className={`${inputClass} font-mono`}
               value={scanned}
               autoFocus
-              onChange={(change) => setScanned(change.target.value)}
+              onChange={(change) => {
+                setScanned(change.target.value);
+                setCandidates([]);
+              }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') void loadPreview();
               }}
@@ -152,6 +203,62 @@ export default function AdminCheckInPage(): ReactNode {
             </button>
           </div>
         </Field>
+
+        <div className="border-line mt-5 border-t pt-5">
+          <Field
+            label="Buscar por nombre del asistente"
+            hint="Se busca en el evento seleccionado. Ignora mayúsculas y acentos."
+          >
+            <div className="flex gap-2">
+              <input
+                className={inputClass}
+                value={nameQuery}
+                onChange={(change) => {
+                  setNameQuery(change.target.value);
+                  setCandidates([]);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') void searchByName();
+                }}
+                placeholder="Nombre y apellido"
+              />
+              <button
+                className={buttonClass}
+                disabled={busy || searching || !eventId || !nameQuery.trim()}
+                onClick={() => void searchByName()}
+              >
+                {searching ? 'Buscando…' : 'Buscar'}
+              </button>
+            </div>
+          </Field>
+          {candidates.length > 0 ? (
+            <div className="border-line mt-4 rounded-lg border">
+              <p className="text-ink-muted px-4 pt-3 text-xs">
+                {candidates.length} {candidates.length === 1 ? 'resultado' : 'resultados'}. Elige la
+                entrada correcta.
+              </p>
+              <ul className="divide-line mt-2 divide-y">
+                {candidates.map((candidate) => (
+                  <li key={candidate.ticketId}>
+                    <button
+                      className="hover:bg-surface w-full px-4 py-3 text-left disabled:opacity-60"
+                      disabled={busy}
+                      onClick={() => void selectCandidate(candidate)}
+                    >
+                      <span className="block text-sm font-medium">{candidate.attendeeName}</span>
+                      <span className="text-ink-muted mt-1 block font-mono text-xs">
+                        {candidate.ticketCode} · {candidate.ticketTypeName}
+                      </span>
+                      <span className="mt-2 block">
+                        <Badge status={candidate.status} />
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
 
         {preview ? (
           <div className="border-line mt-5 border-t pt-5">

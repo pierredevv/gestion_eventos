@@ -6,8 +6,14 @@ import { getRequestContext } from '../../common/http/request-context';
 import { Roles } from '../auth/decorators/auth.decorators';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CheckInService } from './check-in.service';
-import type { CheckInPreview, CheckInRecord, CheckInResult } from './check-in.types';
+import type {
+  CheckInCandidate,
+  CheckInPreview,
+  CheckInRecord,
+  CheckInResult,
+} from './check-in.types';
 import { CheckInDto } from './dto/check-in.dto';
+import { SearchByNameDto } from './dto/search-by-name.dto';
 
 @ApiTags('check-in')
 @Controller('admin/check-in')
@@ -19,6 +25,12 @@ export class CheckInController {
   @ApiOperation({ summary: 'Preview a scanned ticket before confirming entry' })
   async preview(@Body() dto: CheckInDto): Promise<CheckInPreview> {
     return this.checkIns.preview(dto);
+  }
+
+  @Post('search')
+  @ApiOperation({ summary: 'Find event tickets by normalized attendee name' })
+  async searchByName(@Body() dto: SearchByNameDto): Promise<CheckInCandidate[]> {
+    return this.checkIns.searchByName(dto);
   }
 
   @Post()
