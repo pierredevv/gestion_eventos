@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer, { type Transporter } from 'nodemailer';
-import type { AppEnv } from '../config/env';
+import { DEFAULT_EMAIL_FROM_NAME, MAX_EMAIL_FROM_NAME_LENGTH, type AppEnv } from '../config/env';
 
 export interface EmailMessage {
   to: string;
@@ -27,6 +27,7 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private readonly provider: AppEnv['EMAIL_PROVIDER'];
   private readonly from: string;
+  private readonly fromName: string;
   private readonly resendApiKey: string | undefined;
   private readonly brevoApiKey: string | undefined;
   private smtpTransport: Transporter | undefined;
@@ -34,13 +35,16 @@ export class EmailService {
   constructor(private readonly config: ConfigService<AppEnv, true>) {
     this.provider = config.get('EMAIL_PROVIDER', { infer: true });
     this.from = config.get('EMAIL_FROM', { infer: true });
+    this.fromName = this.normalizeSenderName(config.get('EMAIL_FROM_NAME', { infer: true }));
     this.resendApiKey = config.get('RESEND_API_KEY', { infer: true });
     this.brevoApiKey = config.get('BREVO_API_KEY', { infer: true });
   }
 
   async send(message: EmailMessage): Promise<void> {
     if (this.provider === 'console') {
-      this.logger.log(`[email:console] to=${message.to} subject="${message.subject}"`);
+      this.logger.log(
+        `[email:console] from="${this.fromName} <${this.from}>" to=${message.to} subject="${message.subject}"`,
+      );
       this.logger.log(message.text);
       return;
     }
@@ -58,6 +62,17 @@ export class EmailService {
     await this.sendWithSmtp(message);
   }
 
+  /** Keeps the display name safe for SMTP headers and within Brevo's limit. */
+  private normalizeSenderName(value: string | undefined): string {
+    const cleaned = (value ?? DEFAULT_EMAIL_FROM_NAME)
+      .replace(/[\r\n<>\u2028\u2029]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, MAX_EMAIL_FROM_NAME_LENGTH)
+      .trim();
+    return cleaned || DEFAULT_EMAIL_FROM_NAME;
+  }
+
   private async sendWithResend(message: EmailMessage): Promise<void> {
     if (!this.resendApiKey) {
       throw new Error('RESEND_API_KEY is required when EMAIL_PROVIDER=resend');
@@ -70,7 +85,7 @@ export class EmailService {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: this.from,
+        from: `${this.fromName} <${this.from}>`,
         to: [message.to],
         subject: message.subject,
         text: message.text,
@@ -99,7 +114,7 @@ export class EmailService {
       method: 'POST',
       headers: { 'api-key': this.brevoApiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sender: { email: this.from },
+        sender: { email: this.from, name: this.fromName },
         to: [{ email: message.to }],
         subject: message.subject,
         textContent: message.text,
@@ -112,7 +127,9 @@ export class EmailService {
     if (!response.ok) {
       throw new Error(`Brevo rejected the message (${response.status}): ${body.slice(0, 500)}`);
     }
-    this.logger.log(`Brevo accepted message in ${Date.now() - startedAt}ms`);
+    this.logger.log(
+      `Brevo accepted message from "${this.fromName}" in ${Date.now() - startedAt}ms`,
+    );
   }
 
   private async sendWithSmtp(message: EmailMessage): Promise<void> {
@@ -136,7 +153,7 @@ export class EmailService {
     const startedAt = Date.now();
     try {
       await this.smtpTransport.sendMail({
-        from: this.from,
+        from: { name: this.fromName, address: this.from },
         to: message.to,
         subject: message.subject,
         text: message.text,

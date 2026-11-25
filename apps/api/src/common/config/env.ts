@@ -8,6 +8,11 @@ const base64Key = z.string().refine((value) => {
   }
 }, 'must be a base64-encoded 32-byte key');
 
+/** Display name used when no event-specific sender is configured. */
+export const DEFAULT_EMAIL_FROM_NAME = 'Plataforma de Eventos';
+/** Brevo's maximum length for the sender display name. */
+export const MAX_EMAIL_FROM_NAME_LENGTH = 70;
+
 /** Treats empty or whitespace-only values as "not set" (common in .env files). */
 const emptyToUndefined = (value: unknown): unknown =>
   typeof value === 'string' && value.trim() === '' ? undefined : value;
@@ -87,6 +92,10 @@ export const envSchema = z
 
     EMAIL_PROVIDER: z.enum(['console', 'resend', 'smtp', 'brevo']).default('console'),
     EMAIL_FROM: z.string().min(3).default('no-reply@eventos.local'),
+    EMAIL_FROM_NAME: z.preprocess(
+      emptyToUndefined,
+      z.string().min(1).max(MAX_EMAIL_FROM_NAME_LENGTH).default(DEFAULT_EMAIL_FROM_NAME),
+    ),
     RESEND_API_KEY: optionalString,
     BREVO_API_KEY: optionalString,
     SMTP_HOST: optionalString,
