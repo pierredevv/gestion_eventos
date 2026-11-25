@@ -22,6 +22,8 @@ function render(
     subject: string;
     headline: string;
     intro: string;
+    /** HTML-only copy fix; the legacy plain text always uses `intro`. */
+    htmlIntro?: string;
     ctaLabel?: string;
     greeting?: string;
     badge?: LayoutInput['badge'];
@@ -41,7 +43,7 @@ function render(
       preheader: details.preheader,
       eyebrow: details.eyebrow,
       headline: input.overrides?.headline ?? defaults.headline,
-      intro: input.overrides?.intro ?? defaults.intro,
+      intro: input.overrides?.intro ?? defaults.htmlIntro ?? defaults.intro,
       rows: details.rows,
       cta: details.cta
         ? {
@@ -69,13 +71,16 @@ export interface OrderCreatedInput extends BaseInput {
 export function renderOrderCreated(input: OrderCreatedInput): RenderedEmail {
   const rawExpiry = input.expiresAt ?? 'el plazo indicado';
   const readableExpiry = formatDate(input.expiresAt);
+  const cleanExpiry = readableExpiry.replace(/\.$/, '');
   const intro = `Tu pedido ${input.orderCode} fue creado. Completa el pago antes de ${readableExpiry}.`;
+  const htmlIntro = `Tu pedido ${input.orderCode} fue creado. Completa el pago antes de ${cleanExpiry}.`;
   return render(
     input,
     {
       subject: `Pedido ${input.orderCode} creado`,
       headline: '¡Tu pedido fue creado!',
       intro,
+      htmlIntro,
       ctaLabel: 'Ver mi pedido',
       greeting: 'Hola,',
       badge: { label: 'Pedido creado', tone: 'info' },
@@ -175,15 +180,20 @@ export interface PaymentRejectedInput extends BaseInput {
 export function renderPaymentRejected(input: PaymentRejectedInput): RenderedEmail {
   const reason = input.reason ?? 'no especificado';
   const remaining = Math.max(0, input.maxAttempts - input.attempts);
+  const attempts = remaining === 1 ? '1 intento' : `${remaining} intentos`;
   const intro = input.definitive
     ? `Tu comprobante fue rechazado de forma definitiva. Motivo: ${reason}.`
     : `Tu comprobante fue rechazado. Motivo: ${reason}. Te quedan ${remaining} intentos.`;
+  const htmlIntro = input.definitive
+    ? intro
+    : `Tu comprobante fue rechazado. Motivo: ${reason}. Te quedan ${attempts}.`;
   return render(
     input,
     {
       subject: `Comprobante rechazado para ${input.orderCode}`,
       headline: input.definitive ? 'Comprobante rechazado' : 'Necesitamos un nuevo comprobante',
       intro,
+      htmlIntro,
       greeting: 'Hola,',
       badge: { label: 'Comprobante rechazado', tone: 'danger' },
     },

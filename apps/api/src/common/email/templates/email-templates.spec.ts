@@ -50,6 +50,30 @@ describe('email templates', () => {
     );
   });
 
+  it('fixes punctuation and singular attempts in HTML without changing legacy plain text', () => {
+    const created = renderOrderCreated({
+      brand: DEFAULT_BRAND,
+      orderCode: 'PED-1',
+      expiresAt: '2026-11-26T12:00:00.000Z',
+      link: 'https://example.com/orders/PED-1',
+    });
+    // The HTML date ends in "p. m." so the extra sentence period is dropped.
+    expect(created.html).not.toContain('p. m..');
+    expect(created.text).toContain('2026-11-26T12:00:00.000Z.');
+
+    const rejected = renderPaymentRejected({
+      brand: DEFAULT_BRAND,
+      orderCode: 'PED-1',
+      reason: 'Comprobante ilegible',
+      attempts: 1,
+      maxAttempts: 2,
+      definitive: false,
+    });
+    expect(rejected.html).toContain('Te quedan 1 intento.');
+    expect(rejected.html).not.toContain('Te quedan 1 intentos.');
+    expect(rejected.text).toContain('Te quedan 1 intentos.');
+  });
+
   it('renders an HTML document with a CTA and a plain-text alternative', () => {
     const result = renderOrderCreated({
       brand: DEFAULT_BRAND,
