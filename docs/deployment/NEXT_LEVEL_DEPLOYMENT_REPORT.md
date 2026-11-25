@@ -536,3 +536,21 @@ Fecha: viernes 27 de noviembre de 2026, 10:00–12:30 (America/La_Paz).
 
 **Verificación local:** `prisma validate/generate`, `pnpm typecheck`, `pnpm build`, `pnpm lint`,
 `pnpm format:check`, DTO 3/3 y orders 8/8 PASS, incluidos los casos de flag obligatorio y opcional.
+
+**Despliegue:** commit `f3d357b`, Render `dep-dc353dnlot8c7393lac0` `live` y `/health` 200;
+Vercel `dpl_ArGeBMnLtnvLVeMGAweCp37Au5S7` `READY` con alias `gestion-eventos-pi.vercel.app`.
+La migración nueva también quedó marcada como aplicada en `_prisma_migrations`, para que un futuro
+`prisma migrate deploy` no intente repetirla.
+
+**Verificación en producción (sin pagos reales):**
+
+- `GET /api/v1/events/next-level` devuelve el cronograma completo, los nombres completos,
+  `Contacto: +591 62220214` y `requireAttendeeDetails: false`; ya no aparece el correo anterior.
+- La edición se aplicó con `PATCH /api/v1/admin/events/{id}` usando sesión admin real y CSRF; la
+  contraseña se leyó del entorno local y nunca se imprimió ni se guardó en el repositorio.
+- Orden controlada `ORD-261125-POPAQM`: `POST /orders` con nombre y correo del asistente vacíos →
+  `201`, asistente persistido con `fullName: null` y `email: null`; cancelada por API →
+  `CANCELLED` y cupo devuelto a `119` disponibles.
+- El bundle de Vercel contiene `Referencia para consultas`, `+591 62220214`, los textos
+  `(opcional)` del checkout y los controles nuevos del panel admin.
+- **No se aprobó ningún pago ni se modificó la orden real del usuario.**
