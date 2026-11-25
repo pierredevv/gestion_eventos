@@ -554,3 +554,47 @@ La migración nueva también quedó marcada como aplicada en `_prisma_migrations
 - El bundle de Vercel contiene `Referencia para consultas`, `+591 62220214`, los textos
   `(opcional)` del checkout y los controles nuevos del panel admin.
 - **No se aprobó ningún pago ni se modificó la orden real del usuario.**
+
+## Compras personales y optimización de la creación de órdenes
+
+**Cambios funcionales:**
+
+- Migración aditiva `20261125040000_event_personal_purchase`: columna
+  `events.personal_purchase` con default `false`, aplicada y registrada en
+  `_prisma_migrations`. El esquema `test` también quedó actualizado.
+- `personalPurchase` está disponible al crear y editar eventos desde el panel admin y en los
+  DTOs/contratos generados.
+- Con `personalPurchase: true`: se permiten varias entradas por orden, el checkout oculta los
+  campos de asistente y el servidor deriva todos los asistentes desde los datos del comprador,
+  ignorando cualquier `attendees` enviado por el cliente.
+- Con `personalPurchase: false`: se conservan las reglas anteriores de
+  `requireAttendeeDetails` y `ATTENDEE_COUNT_MISMATCH`.
+- NEXT LEVEL quedó con `personalPurchase: true` y `requireAttendeeDetails: false`, activado por
+  `PATCH /api/v1/admin/events/{id}` con sesión admin real y CSRF.
+
+**Optimizaciones aplicadas:**
+
+- Evento y tipos de entrada se leen en una sola consulta.
+- Varios tipos de entrada se reservan con una sola sentencia condicional atómica; se rechazan
+  duplicados de `ticketTypeId` antes de reservar.
+- Auditoría y job de notificación se ejecutan en paralelo.
+- Se eliminó el correo directo duplicado: el worker durable es el único que envía el enlace.
+- Log de latencia por fase, sin datos personales.
+
+**Verificación local:** `prisma format/generate`, `typecheck`, `build`, `lint`, `format:check`,
+DTO 4/4 y orders 11/11 PASS.
+
+**Despliegue:** commit `8ff1e06`, Render `dep-dc35tnafngtc73d1brn0` `live`;
+Vercel `dpl_GBxfBUu4KZJ2mXs5XHoY4Whwv2Kb` `READY` con alias `gestion-eventos-pi.vercel.app`.
+
+**Verificación en producción (sin pagos reales):**
+
+- `GET /api/v1/events/next-level` devuelve `personalPurchase: true` y mantiene el cronograma y
+  `Contacto: +591 62220214`.
+- Los chunks de Vercel contienen `Tus entradas se emitirán con el nombre, el correo y el teléfono
+del comprador` y `Compras personales (el comprador es el asistente de todas las entradas)`.
+- Orden controlada `ORD-261125-3CIE6N`: `2` entradas sin `attendees` → `201`, dos asistentes con
+  los datos del comprador; cancelada por API → `CANCELLED` y cupo devuelto a `118` disponibles.
+- Latencia interna medida en esa orden: idempotencia `102 ms`, catálogo `152 ms`, transacción
+  `1264 ms`, trabajo posterior `182 ms`.
+- **No se aprobó ningún pago ni se modificó ninguna orden real del usuario.**
